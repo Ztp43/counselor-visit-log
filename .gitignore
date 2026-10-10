@@ -1,0 +1,53 @@
+# ================= 敏感凭证（绝不提交） =================
+.env
+.env.local
+*.env
+!*.env.example
+
+# 部署目录：含打包 jar + WinSW xml（明文 DeepSeek/腾讯云 Key、MySQL 密码）
+ruoyi-migration/deploy/
+backend/deploy/
+
+# ================= 已废弃的旧版系统（含硬编码凭证，不提交） =================
+# 旧版 FastAPI 后端 + 旧版前端，已整体迁移到 ruoyi-migration/，仅本地留存
+backend/
+frontend-vue/
+
+# 旧版建库脚本（含旧 MySQL 密码）
+init_mysql.sql
+
+# 本地项目记忆（含历史密码/Key 记录，不提交）
+.workbuddy/
+
+# 数据与上传文件
+backups/
+uploads/
+*.db
+*.sqlite
+*.sqlite3
+
+# ================= Python（旧版 backend） =================
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# ================= 前端 =================
+node_modules/
+dist/
+.DS_Store
+
+# ================= Java / Maven（ruoyi-backend） =================
+target/
+*.class
+*.jar
+*.war
+!.mvn/wrapper/maven-wrapper.jar
+hs_err_pid*
+replay_pid*
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.swp
