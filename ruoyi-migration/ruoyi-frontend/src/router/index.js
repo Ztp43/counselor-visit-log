@@ -61,14 +61,14 @@ export const constantRoutes = [
     // 业务系统没有「首页」：根路径直接重定向到「今日记录」。
     // hidden = 不出现在侧边栏和 tagsView；原若依 index 首页组件已删除。
     path: '',
-    redirect: '/visit/today',
+    redirect: '/today',
     hidden: true
   },
   {
     // 兼容兜底：登出/token 过期/面包屑等处仍可能跳 /index（2026-10-08 实测导致登录后 404），
     // 统一重定向到「今日记录」。
     path: '/index',
-    redirect: '/visit/today',
+    redirect: '/today',
     hidden: true
   },
   {
