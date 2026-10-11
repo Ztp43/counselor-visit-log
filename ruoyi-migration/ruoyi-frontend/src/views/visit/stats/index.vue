@@ -24,14 +24,18 @@
       </div>
       <template v-else>
         <div class="stat-grid">
-          <div v-for="(cn, k) in EVENT_TYPES" :key="k" class="stat-item">
+          <div v-for="(cn, k) in EVENT_TYPES" :key="k" class="stat-item" :class="'t-' + k">
             <div class="num">{{ latest ? (latest[k] ?? '--') : '--' }}</div>
             <div class="label">{{ cn }}</div>
           </div>
         </div>
 
         <div class="chart">
-          <div v-if="!recent.length" class="empty">暂无统计数据</div>
+          <div v-if="!recent.length" class="empty empty-state">
+            <div class="empty-icon">📊</div>
+            <div class="empty-title">暂无统计数据</div>
+            <div class="empty-desc">录入工作记录后，这里会自动生成月度统计</div>
+          </div>
           <div v-else class="chart-cols">
             <div v-for="s in recent" :key="s.month" class="chart-col">
               <div class="chart-val">{{ s.total }}</div>
@@ -124,10 +128,27 @@ onMounted(async () => {
 
 <style scoped>
 .org-filter { margin-bottom: 14px; }
-.stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
-.stat-item { background: #f8fafc; border-radius: 10px; padding: 14px; text-align: center; }
-.num { font-size: 26px; font-weight: 700; color: #303133; }
-.label { font-size: 12px; color: #909399; margin-top: 4px; }
+.stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
+.stat-item {
+  border-radius: 10px; padding: 16px 14px; text-align: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  transition: transform .2s, box-shadow .2s;
+}
+.stat-item:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+.num { font-size: 28px; font-weight: 700; }
+.label { font-size: 12px; margin-top: 4px; opacity: 0.85; }
+
+/* 九类工作各自主题色（浅底 + 深色字，数据一眼可辨） */
+.t-dorm_check  { background: #eaf3ff; } .t-dorm_check  .num { color: #3375d1; } .t-dorm_check  .label { color: #3375d1; }
+.t-hygiene     { background: #e8f7ee; } .t-hygiene     .num { color: #2aa86a; } .t-hygiene     .label { color: #2aa86a; }
+.t-talk        { background: #fdf0f5; } .t-talk        .num { color: #d6608a; } .t-talk        .label { color: #d6608a; }
+.t-class_check { background: #f3efff; } .t-class_check .num { color: #7a5cd6; } .t-class_check .label { color: #7a5cd6; }
+.t-meeting     { background: #fff6e5; } .t-meeting     .num { color: #e6a23c; } .t-meeting     .label { color: #e6a23c; }
+.t-visit_help  { background: #e6f9f7; } .t-visit_help  .num { color: #0fa8a0; } .t-visit_help  .label { color: #0fa8a0; }
+.t-crisis      { background: #fdecea; } .t-crisis      .num { color: #e5543f; } .t-crisis      .label { color: #e5543f; }
+.t-admin       { background: #eef3f8; } .t-admin       .num { color: #5b7a99; } .t-admin       .label { color: #5b7a99; }
+.t-other       { background: #f4f4f5; } .t-other       .num { color: #909399; } .t-other       .label { color: #909399; }
+
 .chart { margin-top: 8px; }
 .chart-cols { display: flex; align-items: flex-end; gap: 12px; height: 140px; }
 .chart-col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; }
@@ -136,4 +157,8 @@ onMounted(async () => {
 .chart-bar.zero { background: #e4e7ed; }
 .chart-label { font-size: 12px; color: #606266; margin-top: 6px; }
 .empty { text-align: center; color: #909399; padding: 30px 0; }
+.empty-state { padding: 48px 0; }
+.empty-icon { font-size: 44px; margin-bottom: 12px; }
+.empty-title { font-size: 15px; color: #606266; margin-bottom: 6px; }
+.empty-desc { font-size: 13px; color: #909399; }
 </style>

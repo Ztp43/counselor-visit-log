@@ -43,8 +43,16 @@
 
       <!-- 聊天区 -->
       <div class="chat-box" ref="chatBox">
-        <div v-for="(m, i) in messages" :key="i" class="chat-msg" :class="m.role">
-          <div class="bubble">{{ m.text }}</div>
+        <div v-for="(m, i) in messages" :key="i">
+          <div v-if="m.banner" class="day-banner">{{ m.text }}</div>
+          <div v-else class="chat-msg" :class="m.role">
+            <div v-if="m.role === 'ai'" class="avatar ai-avatar">🤖</div>
+            <div class="msg-body">
+              <div class="bubble">{{ m.text }}</div>
+              <div v-if="m.time" class="msg-time">{{ m.time }}</div>
+            </div>
+            <div v-if="m.role === 'user'" class="avatar user-avatar">👤</div>
+          </div>
         </div>
       </div>
 
@@ -160,6 +168,20 @@ function recordReplyText(rec) {
   return parts.length ? '已记录：' + parts.join(' · ') : '已记录。'
 }
 
+// 当前时间 HH:mm（聊天时间戳）
+function nowTime() {
+  const d = new Date()
+  const p = n => String(n).padStart(2, '0')
+  return `${p(d.getHours())}:${p(d.getMinutes())}`
+}
+
+// 追加消息（统一带时间戳；opts.banner = true 时渲染为醒目横幅）
+function pushMsg(role, text, opts) {
+  const m = { role, text, time: nowTime() }
+  if (opts && opts.banner) m.banner = true
+  messages.value.push(m)
+}
+
 // ---------- 文字 / 图片录入 ----------
 async function send() {
   const t = text.value.trim()
@@ -173,7 +195,7 @@ async function send() {
     ElMessage.warning('请配一句文字说明，图片会跟着文字一起归类')
     return
   }
-  messages.value.push({ role: 'user', text: t || `📷 上传 ${files.length} 张照片` })
+  pushMsg('user', t || `📷 上传 ${files.length} 张照片`)
   text.value = ''
   clearFiles()
   scrollBottom()
@@ -189,7 +211,7 @@ async function send() {
     if (preview.recordDate && preview.recordDate !== todayStr()) {
       const confirmed = await confirmBackfill(preview.recordDate)
       if (!confirmed) {
-        messages.value.push({ role: 'ai', text: '已取消，这条没有记录。' })
+        pushMsg('ai', '已取消，这条没有记录。')
         return
       }
       targetDate = preview.recordDate
@@ -198,10 +220,10 @@ async function send() {
     // 第二次真正落库（带确认后的日期 + 图片）
     const res2 = await chatRecord(t, { recordDate: targetDate, files })
     const rec = res2.data || {}
-    messages.value.push({ role: 'ai', text: recordReplyText(rec) })
+    pushMsg('ai', recordReplyText(rec))
   } catch (e) {
     // 失败必须可见：气泡里明说，不用 toast（会被下一轮操作顶掉）
-    messages.value.push({ role: 'ai', text: '记录失败：' + (e?.message ?? '未知错误') })
+    pushMsg('ai', '记录失败：' + (e?.message ?? '未知错误'))
   } finally {
     sending.value = false
     scrollBottom()
@@ -325,17 +347,18 @@ function floatToWav(samples, sampleRate) {
 }
 
 async function sendVoice(wav) {
-  const idx = messages.value.push({ role: 'user', text: '识别中…' }) - 1
+  pushMsg('user', '识别中…')
+  const idx = messages.value.length - 1
   scrollBottom()
   recognizing.value = true
   try {
     const res = await voiceRecord(wav)
     const data = res.data || {}
     messages.value[idx].text = data.text || '（没听清）'
-    messages.value.push({ role: 'ai', text: recordReplyText(data.record || {}) })
+    pushMsg('ai', recordReplyText(data.record || {}))
   } catch (e) {
     messages.value[idx].text = '（语音发送失败）'
-    messages.value.push({ role: 'ai', text: '❌ ' + (e?.message ?? '未知错误') })
+    pushMsg('ai', '❌ ' + (e?.message ?? '未知错误'))
   } finally {
     recognizing.value = false
     scrollBottom()
@@ -361,12 +384,18 @@ async function loadHistory() {
     if (selectedUserId.value) query.userId = selectedUserId.value
     const { rows } = await listRecords(query)
     const recs = [...(rows || [])].sort((a, b) => (a.createTime < b.createTime ? -1 : 1))
-    if (!recs.length) return
-    messages.value.push({ role: 'ai', text: `—— 今天共 ${recs.length} 条记录 ——` })
+    if (!recs.length) {
+      // 空状态：给个友好提示（辅导员提示去录入，领导提示暂无）
+      pushMsg('ai', isCounselor.value
+        ? '今天还没有记录，跟我说说今天做了什么吧～'
+        : '所选辅导员今天还没有工作记录。')
+      return
+    }
+    pushMsg('ai', `今天共 ${recs.length} 条记录`, { banner: true })
     for (const r of recs) {
       const userText = `${r.createBy || ''}：${r.rawText || r.detail || '（无文字）'}`
-      messages.value.push({ role: 'user', text: userText })
-      messages.value.push({ role: 'ai', text: recordReplyText(r) })
+      pushMsg('user', userText)
+      pushMsg('ai', recordReplyText(r))
     }
   } catch {
     // 历史拉取失败不影响主流程
@@ -393,18 +422,49 @@ onMounted(async () => {
 <style scoped>
 .readonly-tip { margin-bottom: 12px; }
 .org-filter { margin-bottom: 12px; }
-.chat-box { height: 400px; overflow-y: auto; margin-bottom: 12px; }
-.chat-msg { margin-bottom: 10px; display: flex; }
+.chat-box {
+  height: 420px; overflow-y: auto; margin-bottom: 12px;
+  padding: 12px; border-radius: 12px;
+  background: linear-gradient(180deg, #f7f9fc 0%, #eef2f7 100%);
+}
+.chat-msg { margin-bottom: 14px; display: flex; align-items: flex-end; }
 .chat-msg.user { justify-content: flex-end; }
 .chat-msg.ai { justify-content: flex-start; }
-.bubble {
-  max-width: 75%; padding: 10px 14px; border-radius: 12px;
-  font-size: 14px; line-height: 1.5; white-space: pre-wrap;
-  word-break: break-word;
+
+/* 头像 */
+.avatar {
+  width: 34px; height: 34px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; flex-shrink: 0; box-shadow: 0 2px 6px rgba(0,0,0,0.1);
 }
-.user .bubble { background: #409eff; color: #fff; }
-.ai .bubble { background: #f0f2f5; color: #303133; }
-.input-row { display: flex; gap: 8px; }
+.ai-avatar { background: #e6f0ff; margin-right: 8px; }
+.user-avatar { background: #409eff; margin-left: 8px; }
+
+.msg-body { max-width: 72%; display: flex; flex-direction: column; }
+.chat-msg.user .msg-body { align-items: flex-end; }
+.chat-msg.ai .msg-body { align-items: flex-start; }
+
+.bubble {
+  padding: 10px 14px; border-radius: 14px;
+  font-size: 14px; line-height: 1.5; white-space: pre-wrap;
+  word-break: break-word; box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+.user .bubble { background: #409eff; color: #fff; border-bottom-right-radius: 4px; }
+.ai .bubble { background: #fff; color: #303133; border-bottom-left-radius: 4px; }
+
+.msg-time { font-size: 11px; color: #a8abb2; margin-top: 3px; }
+
+/* 今日记录数横幅 */
+.day-banner {
+  text-align: center; margin: 14px 0;
+  font-size: 13px; color: #3375d1;
+}
+.day-banner::before, .day-banner::after {
+  content: ''; display: inline-block; vertical-align: middle;
+  width: 40px; height: 1px; background: #d5e2f5; margin: 0 10px;
+}
+
+.input-row { display: flex; gap: 8px; align-items: center; }
 .input-row .el-input { flex: 1; }
 .rec-tip { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #f56c6c; margin-top: 8px; }
 .rec-dot { width: 8px; height: 8px; background: #f56c6c; border-radius: 50%; animation: blink 1s infinite; }

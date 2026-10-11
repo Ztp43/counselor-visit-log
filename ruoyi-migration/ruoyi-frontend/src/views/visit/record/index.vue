@@ -5,9 +5,9 @@
         <div class="card-header">
           <span>📒 工作日志</span>
           <div class="head-btns">
-            <el-button size="small" @click="openTrash">🗑️ 回收站</el-button>
-            <el-button size="small" @click="openExport">📥 导出 Excel</el-button>
-            <el-button size="small" type="primary" @click="downloadWeekly">📊 生成周报</el-button>
+            <el-button size="small" @click="openTrash"><el-icon><Delete /></el-icon>&nbsp;回收站</el-button>
+            <el-button size="small" @click="openExport"><el-icon><Download /></el-icon>&nbsp;导出 Excel</el-button>
+            <el-button size="small" type="primary" @click="downloadWeekly"><el-icon><DataAnalysis /></el-icon>&nbsp;生成周报</el-button>
           </div>
         </div>
       </template>
@@ -54,8 +54,11 @@
         <div>加载失败：{{ errorMsg }}</div>
         <el-button size="small" style="margin-top:8px" @click="load">重试</el-button>
       </div>
-      <div v-else-if="!records.length" class="empty">
-        {{ filterDesc ? `没有符合「${filterDesc}」的记录` : '暂无记录，去「今日记录」说一句话吧' }}
+      <div v-else-if="!records.length" class="empty empty-state">
+        <div class="empty-icon">📭</div>
+        <div class="empty-title">{{ filterDesc ? '没有符合条件的记录' : '暂无工作日志' }}</div>
+        <div class="empty-desc">{{ filterDesc ? `没有符合「${filterDesc}」的记录，换个筛选条件试试` : '去「今日记录」说一句话，就能自动生成日志' }}</div>
+        <el-button v-if="!filterDesc" size="small" type="primary" @click="$router.push('/today')">去记录</el-button>
       </div>
       <div v-else>
         <div v-for="r in records" :key="r.recordId" class="record-item">
@@ -178,6 +181,7 @@
 <script setup name="Record">
 import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Delete, Download, DataAnalysis } from '@element-plus/icons-vue'
 import useUserStore from '@/store/modules/user'
 import { listRecords, listTrash, updateRecord, deleteRecord, restoreRecord, purgeRecord, exportReport, exportWeekly, orgTree } from '@/api/visit/record'
 
@@ -533,6 +537,10 @@ onMounted(async () => {
 .photos { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
 .photos img { width: 80px; height: 80px; object-fit: cover; border-radius: 6px; cursor: pointer; }
 .empty { text-align: center; color: #909399; padding: 30px 0; font-size: 14px; }
+.empty-state { padding: 48px 0; }
+.empty-icon { font-size: 44px; margin-bottom: 12px; }
+.empty-title { font-size: 15px; color: #606266; margin-bottom: 6px; }
+.empty-desc { font-size: 13px; color: #909399; margin-bottom: 16px; }
 .trash-item { border-bottom: 1px solid #f0f2f5; padding: 10px 0; }
 .trash-info { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #606266; margin-bottom: 6px; }
 .trash-actions { display: flex; gap: 8px; }
