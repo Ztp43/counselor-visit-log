@@ -41,37 +41,52 @@
         </el-select>
       </div>
 
-      <!-- 聊天区 -->
+      <!-- 聊天区（微信风格） -->
       <div class="chat-box" ref="chatBox">
-        <div v-for="(m, i) in messages" :key="i">
+        <template v-for="(m, i) in messages" :key="i">
           <div v-if="m.banner" class="day-banner">{{ m.text }}</div>
-          <div v-else class="chat-msg" :class="m.role">
-            <div v-if="m.role === 'ai'" class="avatar ai-avatar">🤖</div>
-            <div class="msg-body">
+          <template v-else>
+            <div v-if="showTime(i)" class="time-group">{{ m.time }}</div>
+            <div class="chat-msg" :class="m.role">
+              <div v-if="m.role === 'ai'" class="avatar ai-avatar">🤖</div>
               <div class="bubble">{{ m.text }}</div>
-              <div v-if="m.time" class="msg-time">{{ m.time }}</div>
+              <div v-if="m.role === 'user'" class="avatar user-avatar">👤</div>
             </div>
-            <div v-if="m.role === 'user'" class="avatar user-avatar">👤</div>
-          </div>
-        </div>
+          </template>
+        </template>
       </div>
 
-      <!-- 输入区（仅辅导员） -->
-      <div v-if="isCounselor" class="input-row">
+      <!-- 输入区（微信风格，仅辅导员） -->
+      <div v-if="isCounselor" class="input-bar">
+        <button class="bar-btn" :title="voiceMode ? '切换到键盘' : '切换到语音'" @click="voiceMode = !voiceMode">
+          {{ voiceMode ? '⌨️' : '🎤' }}
+        </button>
+
+        <!-- 语音模式：按住说话 -->
+        <button
+          v-if="voiceMode"
+          class="hold-btn"
+          :class="{ recording }"
+          :disabled="sending"
+          @mousedown.prevent="holdStart"
+          @touchstart.prevent="holdStart"
+          @mouseup.prevent="holdEnd"
+          @touchend.prevent="holdEnd"
+          @touchcancel="holdEnd"
+          @mouseleave="recording && holdEnd()"
+        >{{ recording ? '松开 发送' : '按住 说话' }}</button>
+
+        <!-- 键盘模式：文字输入 -->
         <el-input
+          v-else
           v-model="text"
           placeholder="输入一段话，回车发送"
           :disabled="sending"
           @keyup.enter="send"
         />
-        <el-button :disabled="sending || recognizing" title="添加照片" @click="pickImage">📷</el-button>
-        <el-button
-          :type="recording ? 'danger' : 'default'"
-          :disabled="sending || recognizing"
-          title="点击开始录音，再点结束"
-          @click="toggleRecord"
-        >{{ recording ? '⏹' : '🎤' }}</el-button>
-        <el-button type="primary" :loading="sending" @click="send">发送</el-button>
+
+        <button class="bar-btn" title="添加照片" :disabled="sending || recognizing" @click="pickImage">📷</button>
+        <el-button v-if="!voiceMode" type="primary" :disabled="sending" @click="send">发送</el-button>
       </div>
 
       <!-- 录音提示 -->
@@ -108,7 +123,7 @@ const orgNodes = ref([])
 const selectedUserId = ref(null)
 
 const GREETING =
-  '你好，我是你的工作日志助手。直接告诉我，比如「今晚去 3 号楼查寝」或「下午检查了 2 号楼卫生」。'
+  '你好，我是你的工作日志助手。'
 
 const text = ref('')
 const messages = ref([])
@@ -175,11 +190,30 @@ function nowTime() {
   return `${p(d.getHours())}:${p(d.getMinutes())}`
 }
 
-// 追加消息（统一带时间戳；opts.banner = true 时渲染为醒目横幅）
+// 追加消息（统一带时间戳；opts.banner = 横幅，opts.ts = 自定义毫秒时间，用于历史回填）
 function pushMsg(role, text, opts) {
-  const m = { role, text, time: nowTime() }
+  const m = { role, text, time: nowTime(), ts: (opts && opts.ts) || Date.now() }
   if (opts && opts.banner) m.banner = true
   messages.value.push(m)
+}
+
+// 微信式时间分组：与上一条消息间隔超过 5 分钟才显示居中时间
+function showTime(i) {
+  if (i === 0) return true
+  const cur = messages.value[i]
+  const prev = messages.value[i - 1]
+  if (!cur.ts || !prev.ts) return false
+  return cur.ts - prev.ts > 5 * 60 * 1000
+}
+
+// ---------- 微信式按住说话（复用现有录音管线） ----------
+const voiceMode = ref(false)
+function holdStart() {
+  if (sending.value || recording.value) return
+  startRecording()
+}
+function holdEnd() {
+  if (recording.value) stopRecording()
 }
 
 // ---------- 文字 / 图片录入 ----------
@@ -394,8 +428,9 @@ async function loadHistory() {
     pushMsg('ai', `今天共 ${recs.length} 条记录`, { banner: true })
     for (const r of recs) {
       const userText = `${r.createBy || ''}：${r.rawText || r.detail || '（无文字）'}`
-      pushMsg('user', userText)
-      pushMsg('ai', recordReplyText(r))
+      const ts = r.createTime ? new Date(r.createTime).getTime() : undefined
+      pushMsg('user', userText, { ts })
+      pushMsg('ai', recordReplyText(r), { ts })
     }
   } catch {
     // 历史拉取失败不影响主流程
@@ -422,39 +457,23 @@ onMounted(async () => {
 <style scoped>
 .readonly-tip { margin-bottom: 12px; }
 .org-filter { margin-bottom: 12px; }
+
+/* ---------- 聊天区（微信浅色风） ---------- */
 .chat-box {
   height: 420px; overflow-y: auto; margin-bottom: 12px;
   padding: 12px; border-radius: 12px;
-  background: linear-gradient(180deg, #f7f9fc 0%, #eef2f7 100%);
+  background: #f5f5f5;
 }
-.chat-msg { margin-bottom: 14px; display: flex; align-items: flex-end; }
-.chat-msg.user { justify-content: flex-end; }
-.chat-msg.ai { justify-content: flex-start; }
-
-/* 头像 */
-.avatar {
-  width: 34px; height: 34px; border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 18px; flex-shrink: 0; box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+/* 居中时间分组（微信样式：浅灰底圆角小块） */
+.time-group {
+  text-align: center; margin: 12px 0;
 }
-.ai-avatar { background: #e6f0ff; margin-right: 8px; }
-.user-avatar { background: #409eff; margin-left: 8px; }
-
-.msg-body { max-width: 72%; display: flex; flex-direction: column; }
-.chat-msg.user .msg-body { align-items: flex-end; }
-.chat-msg.ai .msg-body { align-items: flex-start; }
-
-.bubble {
-  padding: 10px 14px; border-radius: 14px;
-  font-size: 14px; line-height: 1.5; white-space: pre-wrap;
-  word-break: break-word; box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+.time-group span, .time-group {
+  display: inline-block;
+  font-size: 12px; color: #fff;
+  background: #d0d0d0; border-radius: 4px;
+  padding: 2px 8px;
 }
-.user .bubble { background: #409eff; color: #fff; border-bottom-right-radius: 4px; }
-.ai .bubble { background: #fff; color: #303133; border-bottom-left-radius: 4px; }
-
-.msg-time { font-size: 11px; color: #a8abb2; margin-top: 3px; }
-
-/* 今日记录数横幅 */
 .day-banner {
   text-align: center; margin: 14px 0;
   font-size: 13px; color: #3375d1;
@@ -463,9 +482,68 @@ onMounted(async () => {
   content: ''; display: inline-block; vertical-align: middle;
   width: 40px; height: 1px; background: #d5e2f5; margin: 0 10px;
 }
+.chat-msg { margin-bottom: 14px; display: flex; align-items: flex-start; }
+.chat-msg.user { justify-content: flex-end; }
 
-.input-row { display: flex; gap: 8px; align-items: center; }
-.input-row .el-input { flex: 1; }
+/* 方形圆角头像（微信样式） */
+.avatar {
+  width: 38px; height: 38px; border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; flex-shrink: 0;
+}
+.ai-avatar { background: #d8e7fb; margin-right: 10px; }
+.user-avatar { background: #c7e5b8; margin-left: 10px; }
+
+.bubble {
+  position: relative;
+  max-width: 65%;
+  padding: 10px 13px; border-radius: 8px;
+  font-size: 14px; line-height: 1.5; white-space: pre-wrap;
+  word-break: break-word;
+}
+.ai .bubble { background: #fff; color: #303133; border: 1px solid #e8e8e8; }
+.user .bubble { background: #95ec69; color: #17301d; }
+
+/* 气泡小尾巴（微信三角） */
+.ai .bubble::before {
+  content: ''; position: absolute; left: -5px; top: 14px;
+  border-top: 5px solid transparent; border-bottom: 5px solid transparent;
+  border-right: 6px solid #fff;
+}
+.user .bubble::after {
+  content: ''; position: absolute; right: -5px; top: 14px;
+  border-top: 5px solid transparent; border-bottom: 5px solid transparent;
+  border-left: 6px solid #95ec69;
+}
+
+/* ---------- 底部输入栏（微信样式） ---------- */
+.input-bar {
+  display: flex; gap: 8px; align-items: center;
+  background: #f7f7f7; border-top: 1px solid #e5e5e5;
+  padding: 8px; border-radius: 8px;
+}
+.bar-btn {
+  width: 38px; height: 38px; flex-shrink: 0;
+  border: none; background: transparent; border-radius: 6px;
+  font-size: 20px; cursor: pointer;
+}
+.bar-btn:hover { background: #e8e8e8; }
+.bar-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* 按住说话大按钮 */
+.hold-btn {
+  flex: 1; height: 40px;
+  border: 1px solid #dcdfe6; border-radius: 6px;
+  background: #fff; color: #303133; font-size: 14px;
+  cursor: pointer; user-select: none; -webkit-user-select: none;
+  transition: background .15s;
+}
+.hold-btn:hover { background: #f5f7fa; }
+.hold-btn.recording { background: #c8e6c9; border-color: #95ec69; color: #17301d; font-weight: 600; }
+.hold-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.input-bar .el-input { flex: 1; }
+
 .rec-tip { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #f56c6c; margin-top: 8px; }
 .rec-dot { width: 8px; height: 8px; background: #f56c6c; border-radius: 50%; animation: blink 1s infinite; }
 @keyframes blink { 50% { opacity: 0.2; } }
