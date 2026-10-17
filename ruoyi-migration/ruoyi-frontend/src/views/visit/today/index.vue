@@ -576,3 +576,48 @@ onMounted(async () => {
 .dark .hold-btn:hover { background: #38383a; }
 .dark .hold-btn.recording { background: #2d4a33; border-color: #3eb575; color: #d8f3df; }
 </style>
+
+<style scoped>
+/* ---------- 移动端：聊天区撑满可用区域（issue #7） ---------- */
+/* 仅 <992px 生效（与若依 device=mobile 判定对齐），桌面端保持卡片+留白不变 */
+@media (max-width: 991px) {
+  /* 本页去掉四周留白，高度 = 视口 - 顶栏(50) - 页签栏(34) */
+  .app-container {
+    padding: 0;
+    height: calc(100vh - 84px);
+    overflow: hidden;
+  }
+  /* 卡片撑满、去边框圆角，改为纵向 flex：header 固定 + body 撑满 */
+  :deep(.el-card) {
+    height: 100%;
+    border: none;
+    border-radius: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  :deep(.el-card__header) {
+    flex-shrink: 0;
+    padding: 10px 14px;
+  }
+  :deep(.el-card__body) {
+    flex: 1;
+    min-height: 0;
+    padding: 0 10px 10px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  /* 聊天区撑满剩余高度（替代固定 420px），alert/筛选/输入栏保持自适应 */
+  .chat-box {
+    flex: 1;
+    min-height: 0;
+    height: auto !important;
+  }
+  .input-bar,
+  .org-filter,
+  .readonly-tip {
+    flex-shrink: 0;
+  }
+}
+</style>
