@@ -177,3 +177,6 @@ aside {
     margin-bottom: 10px;
   }
 }
+
+/* 深色模式全局覆写（GitHub issue #2） */
+@import "./dark.scss";
