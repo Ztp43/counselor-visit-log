@@ -1,0 +1,47 @@
+/** 全站深色模式覆写（GitHub issue #2）
+ *  html.dark 由若依自带 VueUse useDark() 切换；el-* 组件由 Element dark/css-vars.css 自动适配。
+ *  本文件只覆写若依自带样式里的硬编码浅色，避免全站切换后局部破相。 */
+
+html.dark {
+  // 全局 aside（index.scss）
+  aside {
+    background: #262727;
+    color: #cfd3dc;
+  }
+
+  // 若依表格表头（ruoyi.scss 的 #f8f8f9 !important）
+  .el-table {
+    .el-table__header-wrapper,
+    .el-table__fixed-header-wrapper {
+      th {
+        background-color: var(--el-fill-color-light) !important;
+        color: var(--el-text-color-regular);
+      }
+    }
+  }
+
+  // 详情抽屉（ruoyi.scss .detail-drawer）
+  .detail-drawer {
+    .el-drawer__header {
+      background: #262727;
+      color: #e5eaf3;
+    }
+  }
+
+  // 代码块（生成器页）
+  .code-action .el-button {
+    background: rgba(0, 0, 0, 0.4);
+    border-color: #414243;
+  }
+  .code-action .el-button:hover {
+    background: #2b2b2d;
+  }
+  .code-pre {
+    color: #cfd3dc;
+  }
+
+  // 树形侧栏内容区
+  .tree-sidebar-content {
+    background: var(--el-bg-color);
+  }
+}

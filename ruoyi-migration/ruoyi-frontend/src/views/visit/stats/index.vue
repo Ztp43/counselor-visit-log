@@ -162,3 +162,16 @@ onMounted(async () => {
 .empty-title { font-size: 15px; color: #606266; margin-bottom: 6px; }
 .empty-desc { font-size: 13px; color: #909399; }
 </style>
+
+<style scoped>
+/* ---------- 深色模式适配（issue #2）：9 类卡片深色底 + 亮色字 ---------- */
+.dark .t-dorm_check  { background: rgba(51,117,209,0.16); } .dark .t-dorm_check  .num, .dark .t-dorm_check  .label { color: #82b1ec; }
+.dark .t-hygiene     { background: rgba(42,168,106,0.16); } .dark .t-hygiene     .num, .dark .t-hygiene     .label { color: #6fd3a0; }
+.dark .t-talk        { background: rgba(214,96,138,0.16); } .dark .t-talk        .num, .dark .t-talk        .label { color: #ef9cbc; }
+.dark .t-class_check { background: rgba(122,92,214,0.18); } .dark .t-class_check .num, .dark .t-class_check .label { color: #ab97ea; }
+.dark .t-meeting     { background: rgba(230,162,60,0.16); } .dark .t-meeting     .num, .dark .t-meeting     .label { color: #f2c379; }
+.dark .t-visit_help  { background: rgba(15,168,160,0.16); } .dark .t-visit_help  .num, .dark .t-visit_help  .label { color: #63d6cf; }
+.dark .t-crisis      { background: rgba(229,84,63,0.16); }  .dark .t-crisis      .num, .dark .t-crisis      .label { color: #f5927f; }
+.dark .t-admin       { background: rgba(91,122,153,0.18); } .dark .t-admin       .num, .dark .t-admin       .label { color: #92aec9; }
+.dark .t-other       { background: rgba(144,147,153,0.14); } .dark .t-other       .num, .dark .t-other       .label { color: #a3a6ad; }
+</style>

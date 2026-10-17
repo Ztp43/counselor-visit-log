@@ -48,6 +48,10 @@
             <router-link to="/user/profile">
               <el-dropdown-item>个人中心</el-dropdown-item>
             </router-link>
+            <el-dropdown-item command="toggleTheme">
+              <el-icon style="vertical-align:middle"><Moon /></el-icon>
+              <span style="vertical-align:middle">切换主题</span>
+            </el-dropdown-item>
             <el-dropdown-item command="setLayout" v-if="settingsStore.showSettings">
                 <span>布局设置</span>
             </el-dropdown-item>
@@ -66,6 +70,7 @@
 
 <script setup>
 import { ElMessageBox } from 'element-plus'
+import { Moon } from '@element-plus/icons-vue'
 import Breadcrumb from '@/components/Breadcrumb'
 import TopNav from './TopNav'
 import TopBar from './TopBar'
@@ -95,6 +100,9 @@ function toggleSideBar() {
 
 function handleCommand(command) {
   switch (command) {
+    case "toggleTheme":
+      settingsStore.toggleTheme()
+      break
     case "setLayout":
       setLayout()
       break

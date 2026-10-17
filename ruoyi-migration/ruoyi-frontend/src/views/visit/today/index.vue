@@ -557,3 +557,22 @@ onMounted(async () => {
   font-size: 12px; cursor: pointer;
 }
 </style>
+
+<style scoped>
+/* ---------- 深色模式适配（issue #2） ---------- */
+.dark .chat-box { background: #191a1c; }
+.dark .ai-avatar { background: #24344d; }
+.dark .user-avatar { background: #223c2a; }
+.dark .ai .bubble { background: #2b2b2d; color: #e5eaf3; border-color: #414243; }
+.dark .ai .bubble::before { border-right-color: #2b2b2d; }
+.dark .user .bubble { background: #3eb575; color: #10241a; }
+.dark .user .bubble::after { border-left-color: #3eb575; }
+.dark .time-group { background: #414243; color: #cfd3dc; }
+.dark .day-banner { color: #7cabdf; }
+.dark .day-banner::before, .dark .day-banner::after { background: #2c4162; }
+.dark .input-bar { background: #252526; border-top-color: #414243; }
+.dark .bar-btn:hover { background: #3a3a3c; }
+.dark .hold-btn { background: #2b2b2d; color: #e5eaf3; border-color: #414243; }
+.dark .hold-btn:hover { background: #38383a; }
+.dark .hold-btn.recording { background: #2d4a33; border-color: #3eb575; color: #d8f3df; }
+</style>

@@ -551,3 +551,11 @@ onMounted(async () => {
 .export-dates .to { color: #909399; }
 .hint { font-size: 12px; color: #909399; margin-top: 8px; }
 </style>
+
+<style scoped>
+/* ---------- 深色模式适配（issue #2） ---------- */
+.dark .record-item { border-color: #414243; background: var(--el-bg-color); }
+.dark .kw-row { background: #1d2a3f; border-color: #2c4162; }
+.dark .trash-item { border-bottom-color: #414243; }
+.dark .photos img { border: 1px solid #414243; }
+</style>
