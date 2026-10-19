@@ -141,11 +141,64 @@ function pickImage() {
 
 function onFiles(e) {
   const target = e.target
-  for (const f of Array.from(target.files || [])) {
-    pendingFiles.value.push(f)
-    previews.value.push({ url: URL.createObjectURL(f) })
-  }
+  const files = Array.from(target.files || [])
   target.value = ''
+  if (!files.length) return
+  // 图片压缩（长边 1600px、质量 0.8），9 张图约 3-5MB，避免超限+省流量
+  compressImages(files).then(compressed => {
+    pendingFiles.value.push(...compressed)
+    compressed.forEach(f => previews.value.push({ url: URL.createObjectURL(f) }))
+  })
+}
+
+// 用 canvas 把图片长边压到 MAX_EDGE、JPEG 质量 0.8；小图/非图片原样返回
+const MAX_EDGE = 1600
+const JPEG_QUALITY = 0.8
+
+async function compressImages(files) {
+  const out = []
+  for (const f of files) {
+    if (!f.type.startsWith('image/')) {
+      out.push(f) // 非图片直接保留
+      continue
+    }
+    try {
+      const img = await loadImage(f)
+      const { width, height } = img
+      if (Math.max(width, height) <= MAX_EDGE) {
+        out.push(f) // 已经够小，不压缩
+        continue
+      }
+      const scale = MAX_EDGE / Math.max(width, height)
+      const w = Math.round(width * scale)
+      const h = Math.round(height * scale)
+      const canvas = document.createElement('canvas')
+      canvas.width = w
+      canvas.height = h
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h)
+      const blob = await canvasToBlob(canvas)
+      out.push(new File([blob], f.name, { type: 'image/jpeg' }))
+    } catch {
+      out.push(f) // 压缩失败兜底：用原图
+    }
+  }
+  return out
+}
+
+function loadImage(file) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file)
+    const img = new Image()
+    img.onload = () => { URL.revokeObjectURL(url); resolve(img) }
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('load fail')) }
+    img.src = url
+  })
+}
+
+function canvasToBlob(canvas) {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(b => (b ? resolve(b) : reject(new Error('blob fail'))), 'image/jpeg', JPEG_QUALITY)
+  })
 }
 
 function removeFile(i) {
