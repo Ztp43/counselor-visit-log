@@ -154,6 +154,18 @@ visit:
     asr-appid: ${TENCENT_ASR_APPID:}
   upload:
     dir: ${UPLOAD_DIR:./uploads}
+  # 数据库定时备份（issue #9：每日快照 + 启动补份，滚动保留）
+  backup:
+    enabled: ${BACKUP_ENABLED:true}
+    dir: ${BACKUP_DIR:./backups}
+    keep: ${BACKUP_KEEP:14}
+    cron: ${BACKUP_CRON:0 0 2 * * ?}
+    db-name: ${BACKUP_DB_NAME:ry-vue}
+    db-host: ${BACKUP_DB_HOST:127.0.0.1}
+    db-user: ${BACKUP_DB_USER:root}
+    # 复用部署环境已注入的 MYSQL_PASSWORD（与数据源同一变量，无需单独配置）
+    db-password: ${MYSQL_PASSWORD:}
+    photos-dir: ${BACKUP_PHOTOS_DIR:D:/ruoyi/uploadPath}
 
 # CAS 单点登录（浙江农林大学统一身份认证，默认关闭，不影响账号密码登录）
 cas:
