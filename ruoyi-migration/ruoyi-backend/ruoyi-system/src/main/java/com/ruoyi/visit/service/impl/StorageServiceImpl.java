@@ -13,8 +13,11 @@ import com.ruoyi.visit.service.IStorageService;
 
 /**
  * 文件存储（图片/录音），纯 Java NIO。迁移自旧系统 StorageServiceImpl。
- * 图片存到若依 profile 目录（RuoYiConfig.getProfile()），URL 走 /profile/xxx.jpg；
- * 录音存到 visit.upload.dir（无需 URL 访问）。
+ * issue #10 目录统一：图片与录音都归入 profile 目录树——
+ *   图片  {profile}/xxx.jpg        URL 走 /profile/xxx.jpg
+ *   录音  {profile}/voice/xxx.wav  仅存档，无需 URL 访问
+ * 兼容回退：目录统一前录入的录音在旧目录（visit.upload.legacy-dir，即 ./uploads），
+ *   读取/删除时若新目录没有该文件，回退旧目录处理，历史记录不失效。
  */
 @Service
 public class StorageServiceImpl implements IStorageService
@@ -60,7 +63,25 @@ public class StorageServiceImpl implements IStorageService
     @Override
     public void deleteAudio(String filename)
     {
+        // 新旧目录都尝试删（旧目录残留文件也能清掉）
         delete(config.getUpload().getDir(), filename);
+        delete(config.getUpload().getLegacyDir(), filename);
+    }
+
+    /** 录音文件解析：新目录优先，找不到回退旧目录（历史数据兼容） */
+    private Path resolveAudio(String filename)
+    {
+        Path newPath = Paths.get(config.getUpload().getDir()).toAbsolutePath().resolve(filename);
+        if (Files.exists(newPath))
+        {
+            return newPath;
+        }
+        Path legacyPath = Paths.get(config.getUpload().getLegacyDir()).toAbsolutePath().resolve(filename);
+        if (Files.exists(legacyPath))
+        {
+            return legacyPath;
+        }
+        return newPath; // 都不存在时返回新路径（由调用方处理不存在的情况）
     }
 
     private void delete(String dirStr, String filename)
