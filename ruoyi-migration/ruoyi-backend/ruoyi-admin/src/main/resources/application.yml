@@ -6,8 +6,9 @@ ruoyi:
   version: 3.9.2
   # 版权年份
   copyrightYear: 2026
-  # 文件路径 示例（ Windows配置D:/ruoyi/uploadPath，Linux配置 /home/ruoyi/uploadPath）
-  profile: D:/ruoyi/uploadPath
+  # 文件路径（issue #10：环境变量注入，支持 Windows/Linux 双平台）
+  # Windows 默认 D:/ruoyi/uploadPath；Linux 部署时设环境变量 RUOYI_PROFILE=/home/ruoyi/uploadPath
+  profile: ${RUOYI_PROFILE:D:/ruoyi/uploadPath}
   # 获取ip地址开关
   addressEnabled: false
   # 验证码类型 math 数字计算 char 字符验证
@@ -153,7 +154,10 @@ visit:
     secret-key: ${TENCENT_SECRET_KEY:}
     asr-appid: ${TENCENT_ASR_APPID:}
   upload:
-    dir: ${UPLOAD_DIR:./uploads}
+    # issue #10：录音统一归入 profile 目录树（{profile}/voice/），与图片同一套存储
+    dir: ${VISIT_UPLOAD_DIR:${RUOYI_PROFILE:D:/ruoyi/uploadPath}}/voice
+    # 旧录音目录（兼容回退：新目录找不到的文件回退此处查找）
+    legacy-dir: ./uploads
   # 数据库定时备份（issue #9：每日快照 + 启动补份，滚动保留）
   backup:
     enabled: ${BACKUP_ENABLED:true}
@@ -165,7 +169,7 @@ visit:
     db-user: ${BACKUP_DB_USER:root}
     # 复用部署环境已注入的 MYSQL_PASSWORD（与数据源同一变量，无需单独配置）
     db-password: ${MYSQL_PASSWORD:}
-    photos-dir: ${BACKUP_PHOTOS_DIR:D:/ruoyi/uploadPath}
+    photos-dir: ${RUOYI_PROFILE:D:/ruoyi/uploadPath}
 
 # CAS 单点登录（浙江农林大学统一身份认证，默认关闭，不影响账号密码登录）
 cas:
