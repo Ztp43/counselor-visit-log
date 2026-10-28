@@ -262,6 +262,32 @@ public class VisitRecordController extends BaseController
             targetDate = aiDate;
         }
 
+        // 补录日期边界校验（issue #15，迁移自旧版：仅限当年内且不能是未来）
+        // dryRun 也校验——前端在确认弹窗前就拿到明确错误，避免确认后才失败
+        if (targetDate != null && !targetDate.isBlank())
+        {
+            java.time.LocalDate target;
+            try
+            {
+                target = java.time.LocalDate.parse(targetDate);
+            }
+            catch (Exception e)
+            {
+                return error("无法识别补录日期「" + targetDate + "」，请检查后重试，或去掉日期描述按今天记录");
+            }
+            java.time.LocalDate today = java.time.LocalDate.now();
+            if (target.isAfter(today))
+            {
+                return error("补录日期不能是未来（" + target.getYear() + "年" + target.getMonthValue() + "月"
+                        + target.getDayOfMonth() + "日）。如需记录今天的工作，请去掉日期描述后重新发送");
+            }
+            if (target.getYear() < today.getYear())
+            {
+                return error("只能补录今年（" + today.getYear() + "年）的记录，" + target.getYear()
+                        + "年的工作无法补录");
+            }
+        }
+
         if (dryRun)
         {
             Map<String, Object> preview = new HashMap<>();
