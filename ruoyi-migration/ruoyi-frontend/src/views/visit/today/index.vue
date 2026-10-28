@@ -294,8 +294,20 @@ async function send() {
     const preview = res.data || {}
     let targetDate = undefined
 
-    // 识别出「非今天」的日期 → 弹确认
+    // 识别出「非今天」的日期 → 先做边界校验（issue #15），再弹确认
     if (preview.recordDate && preview.recordDate !== todayStr()) {
+      const d = preview.recordDate
+      const today = todayStr()
+      if (d > today) {
+        // 未来日期：直接拒绝，不弹确认框
+        pushMsg('ai', `补录日期不能是未来（${fmtCnDate(d)}）。如需记录今天的工作，请去掉日期描述后重新发送。`)
+        return
+      }
+      if (d.slice(0, 4) < today.slice(0, 4)) {
+        // 跨年：直接拒绝，不弹确认框
+        pushMsg('ai', `只能补录今年（${today.slice(0, 4)}年）的记录，${d.slice(0, 4)}年的工作无法补录。这条未记录。`)
+        return
+      }
       const confirmed = await confirmBackfill(preview.recordDate)
       if (!confirmed) {
         pushMsg('ai', '已取消，这条没有记录。')
