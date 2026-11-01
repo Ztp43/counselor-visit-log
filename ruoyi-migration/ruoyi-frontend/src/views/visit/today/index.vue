@@ -42,7 +42,7 @@
       </div>
 
       <!-- 聊天区（微信风格） -->
-      <div class="chat-box" ref="chatBox">
+      <div class="chat-box" ref="chatBox" @scroll="onChatScroll">
         <template v-for="(m, i) in messages" :key="i">
           <div v-if="m.banner" class="day-banner">{{ m.text }}</div>
           <template v-else>
@@ -464,24 +464,25 @@ async function sendVoice(wav) {
   }
 }
 
-// ---------- 当天历史回填（退出重登/换设备不丢，凌晨 12 点自动切新一天） ----------
+// ---------- 当天历史回填（滚动分页加载，issue #14：超 100 条不丢失） ----------
+const HISTORY_PAGE_SIZE = 100
+let historyPage = 1        // 当前已加载到的页码
+let historyTotal = 0       // 当天总记录数
+let historyLoading = false // 防重入
+
 async function loadHistory() {
   const greet = isCounselor.value
     ? GREETING
     : '今天的工作记录概览（按你的查看权限）。'
   messages.value = [{ role: 'ai', text: greet }]
+  historyPage = 1
+  historyTotal = 0
   try {
     // 用 beginTime/endTime 圈定「今天」：后端按 coalesce(record_date, create_time) 过滤。
     // ⚠️ 必须放 params 嵌套对象（若依标准绑定格式 params[beginTime]），
     //    顶层 beginTime 后端绑不上 → 时间过滤失效 → 会混入历史记录（2026-10-08 实测）。
-    const query = {
-      pageNum: 1,
-      pageSize: 100,
-      params: { beginTime: todayStr(), endTime: todayStr() }
-    }
-    // 领导/管理员选了某个辅导员 → 只看该辅导员（后端 @DataScope 已保证越权安全）
-    if (selectedUserId.value) query.userId = selectedUserId.value
-    const { rows } = await listRecords(query)
+    const { rows, total } = await fetchHistoryPage(1)
+    historyTotal = total
     const recs = [...(rows || [])].sort((a, b) => (a.createTime < b.createTime ? -1 : 1))
     if (!recs.length) {
       // 空状态：给个友好提示（辅导员提示去录入，领导提示暂无）
@@ -490,15 +491,74 @@ async function loadHistory() {
         : '所选辅导员今天还没有工作记录。')
       return
     }
-    pushMsg('ai', `今天共 ${recs.length} 条记录`, { banner: true })
+    pushMsg('ai', `今天共 ${total} 条记录`, { banner: true })
+    appendHistory(recs)
+    scrollBottom()
+  } catch {
+    // 历史拉取失败不影响主流程
+  }
+}
+
+/** 拉取指定页码的当天记录（带 selectedUserId 下钻） */
+async function fetchHistoryPage(pageNum) {
+  const query = {
+    pageNum,
+    pageSize: HISTORY_PAGE_SIZE,
+    params: { beginTime: todayStr(), endTime: todayStr() }
+  }
+  // 领导/管理员选了某个辅导员 → 只看该辅导员（后端 @DataScope 已保证越权安全）
+  if (selectedUserId.value) query.userId = selectedUserId.value
+  return listRecords(query)
+}
+
+/** 把一组记录转成消息（按时间正序 append 到尾部） */
+function appendHistory(recs) {
+  for (const r of recs) {
+    const userText = `${r.createBy || ''}：${r.rawText || r.detail || '（无文字）'}`
+    const ts = r.createTime ? new Date(r.createTime).getTime() : undefined
+    pushMsg('user', userText, { ts })
+    pushMsg('ai', recordReplyText(r), { ts })
+  }
+}
+
+/** 滚动到顶部时加载更早的一页（前插到消息流顶部） */
+async function loadMoreHistory() {
+  if (historyLoading) return
+  const totalPages = Math.ceil(historyTotal / HISTORY_PAGE_SIZE)
+  if (historyPage >= totalPages) return // 已加载完
+  historyLoading = true
+  try {
+    const { rows } = await fetchHistoryPage(historyPage + 1)
+    historyPage += 1
+    const recs = [...(rows || [])].sort((a, b) => (a.createTime < b.createTime ? -1 : 1))
+    if (!recs.length) return
+    // 前插：记录「加载更多前的 scrollHeight」，插完后保持视口位置不跳
+    const box = chatBox.value
+    const prevHeight = box ? box.scrollHeight : 0
+    const newMsgs = []
     for (const r of recs) {
       const userText = `${r.createBy || ''}：${r.rawText || r.detail || '（无文字）'}`
       const ts = r.createTime ? new Date(r.createTime).getTime() : undefined
-      pushMsg('user', userText, { ts })
-      pushMsg('ai', recordReplyText(r), { ts })
+      newMsgs.push({ role: 'user', text: userText, time: '', ts })
+      newMsgs.push({ role: 'ai', text: recordReplyText(r), time: '', ts })
     }
+    messages.value = [...newMsgs, ...messages.value]
+    nextTick(() => {
+      if (box) box.scrollTop = box.scrollHeight - prevHeight
+    })
   } catch {
-    // 历史拉取失败不影响主流程
+    // 加载更多失败静默，不打断浏览
+  } finally {
+    historyLoading = false
+  }
+}
+
+/** 绑定/解绑聊天区顶部滚动加载监听 */
+function onChatScroll() {
+  const box = chatBox.value
+  if (!box) return
+  if (box.scrollTop <= 30) {
+    loadMoreHistory()
   }
 }
 
