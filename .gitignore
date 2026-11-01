@@ -36,6 +36,7 @@ venv/
 node_modules/
 dist/
 .DS_Store
+dist_old*
 
 # ================= Java / Maven（ruoyi-backend） =================
 target/
