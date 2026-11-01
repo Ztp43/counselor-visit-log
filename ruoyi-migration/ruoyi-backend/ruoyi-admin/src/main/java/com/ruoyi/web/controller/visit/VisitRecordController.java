@@ -236,6 +236,7 @@ public class VisitRecordController extends BaseController
     public AjaxResult chat(
             @RequestParam(value = "text", defaultValue = "") String text,
             @RequestParam(value = "recordDate", required = false) String recordDate,
+            @RequestParam(value = "itemId", required = false) Long itemId,
             @RequestParam(value = "dryRun", defaultValue = "false") boolean dryRun,
             @RequestParam(value = "files", required = false) MultipartFile[] files)
     {
@@ -307,6 +308,7 @@ public class VisitRecordController extends BaseController
         rec.setDetail(parsed.get("detail"));
         rec.setAiReply(parsed.get("reply"));
         rec.setRawText(parsed.get("raw_text"));
+        rec.setItemId(itemId);
         if (targetDate != null && !targetDate.isBlank())
         {
             try { rec.setRecordDate(java.sql.Date.valueOf(targetDate)); } catch (Exception ignored) {}
@@ -344,7 +346,8 @@ public class VisitRecordController extends BaseController
      */
     @PreAuthorize("@ss.hasPermi('visit:record:add')")
     @PostMapping("/voice")
-    public AjaxResult voice(@RequestParam("audio") MultipartFile audio)
+    public AjaxResult voice(@RequestParam("audio") MultipartFile audio,
+                            @RequestParam(value = "itemId", required = false) Long itemId)
     {
         byte[] data;
         try
@@ -377,6 +380,7 @@ public class VisitRecordController extends BaseController
         rec.setAiReply(parsed.get("reply"));
         rec.setRawText(parsed.get("raw_text"));
         rec.setAudioPath(audioName);
+        rec.setItemId(itemId);
         String aiDate = parsed.get("record_date");
         if (aiDate != null && !aiDate.isBlank())
         {

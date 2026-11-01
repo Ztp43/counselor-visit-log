@@ -47,6 +47,9 @@ public class VisitRecord extends BaseEntity
     /** 录音文件路径 */
     private String audioPath;
 
+    /** 关联事项ID（visit_item.item_id，null=普通日志） */
+    private Long itemId;
+
     /** 补录日期（null=当天） */
     private Date recordDate;
 
@@ -61,6 +64,9 @@ public class VisitRecord extends BaseEntity
 
     /** 关键词（非表字段，搜索用：student_name/detail/raw_text/location 四列 or 包含匹配） */
     private String keyword;
+
+    /** 关联事项标题（联表展示用，非表字段） */
+    private String itemTitle;
 
     public Long getRecordId() { return recordId; }
     public void setRecordId(Long recordId) { this.recordId = recordId; }
@@ -82,6 +88,10 @@ public class VisitRecord extends BaseEntity
     public void setRawText(String rawText) { this.rawText = rawText; }
     public String getAudioPath() { return audioPath; }
     public void setAudioPath(String audioPath) { this.audioPath = audioPath; }
+    public Long getItemId() { return itemId; }
+    public void setItemId(Long itemId) { this.itemId = itemId; }
+    public String getItemTitle() { return itemTitle; }
+    public void setItemTitle(String itemTitle) { this.itemTitle = itemTitle; }
     public Date getRecordDate() { return recordDate; }
     public void setRecordDate(Date recordDate) { this.recordDate = recordDate; }
     public Date getDeletedAt() { return deletedAt; }

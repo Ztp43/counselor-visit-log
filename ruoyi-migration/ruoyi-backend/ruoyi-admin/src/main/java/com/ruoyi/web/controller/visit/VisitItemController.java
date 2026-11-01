@@ -64,7 +64,9 @@ public class VisitItemController extends BaseController
         {
             return error("请选择问题类别");
         }
-        return toAjax(visitItemService.insertVisitItem(item));
+        visitItemService.insertVisitItem(item);
+        // 返回完整实体（含回填的 itemId 和生成的 itemNo），供前端关联日志使用
+        return success(item);
     }
 
     /** 编辑事项（含状态流转） */

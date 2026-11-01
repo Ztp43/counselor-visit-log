@@ -26,6 +26,7 @@ export function chatRecord(text, opts) {
   const params = { text }
   if (opts && opts.dryRun) params.dryRun = true
   if (opts && opts.recordDate) params.recordDate = opts.recordDate
+  if (opts && opts.itemId) params.itemId = opts.itemId
   let data
   if (opts && opts.files && opts.files.length) {
     const fd = new FormData()
@@ -49,12 +50,15 @@ export function chatRecord(text, opts) {
 
 // ---------- 语音录入（wav → 腾讯云 ASR → AI 识别 → 落库） ----------
 // data: { text, record }
-export function voiceRecord(wav) {
+export function voiceRecord(wav, itemId) {
   const fd = new FormData()
   fd.append('audio', wav, 'record.wav')
+  const params = {}
+  if (itemId) params.itemId = itemId
   return request({
     url: '/visit/record/voice',
     method: 'post',
+    params,
     data: fd,
     // ⚠️ 同 chatRecord：必须显式 multipart，否则 axios 把 FormData 转 JSON（2026-09-29 实测）
     headers: { 'Content-Type': 'multipart/form-data' }

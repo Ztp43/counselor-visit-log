@@ -71,6 +71,7 @@
             </span>
           </div>
           <div v-if="r.recorderName" class="recorder">👤 {{ r.recorderName }}</div>
+          <div v-if="r.itemTitle" class="item-link">📋 事项：{{ r.itemTitle }}</div>
           <div v-if="metaText(r)" class="loc">{{ metaText(r) }}</div>
           <div class="detail" v-html="highlight(r.detail || '')"></div>
           <div v-if="r.rawText && keyword" class="raw">原文：<span v-html="highlight(r.rawText)"></span></div>
@@ -531,6 +532,7 @@ onMounted(async () => {
 .top-right { display: flex; align-items: center; gap: 8px; }
 .time { font-size: 12px; color: #909399; }
 .recorder { font-size: 13px; color: #606266; margin-bottom: 4px; }
+.item-link { font-size: 13px; color: #3375d1; margin-bottom: 4px; }
 .loc { font-size: 13px; color: #909399; margin-bottom: 4px; }
 .detail { font-size: 14px; color: #303133; white-space: pre-wrap; }
 .raw { font-size: 12px; color: #909399; margin-top: 6px; }
