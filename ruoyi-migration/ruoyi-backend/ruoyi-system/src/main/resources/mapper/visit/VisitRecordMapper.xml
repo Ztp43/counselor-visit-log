@@ -15,6 +15,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="aiReply"      column="ai_reply"      />
         <result property="rawText"      column="raw_text"      />
         <result property="audioPath"    column="audio_path"    />
+        <result property="itemId"       column="item_id"       />
         <result property="recordDate"   column="record_date"   />
         <result property="deletedAt"    column="deleted_at"    />
         <result property="createBy"     column="create_by"     />
@@ -22,15 +23,18 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="updateBy"     column="update_by"     />
         <result property="updateTime"   column="update_time"   />
         <result property="recorderName" column="recorder_name" />
+        <result property="itemTitle"    column="item_title"    />
     </resultMap>
 
     <sql id="selectVisitRecordVo">
         select v.record_id, v.user_id, v.dept_id, v.event_type, v.location, v.student_name,
-               v.detail, v.ai_reply, v.raw_text, v.audio_path, v.record_date, v.deleted_at,
+               v.detail, v.ai_reply, v.raw_text, v.audio_path, v.item_id, v.record_date, v.deleted_at,
                v.create_by, v.create_time, v.update_by, v.update_time,
-               u.nick_name as recorder_name
+               u.nick_name as recorder_name,
+               i.title as item_title
         from visit_record v
         left join sys_user u on v.user_id = u.user_id
+        left join visit_item i on v.item_id = i.item_id
     </sql>
 
     <!-- 条件分页查询：${params.dataScope} 由 @DataScope 注入，实现四级数据权限 -->
@@ -99,6 +103,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="aiReply != null">ai_reply,</if>
             <if test="rawText != null">raw_text,</if>
             <if test="audioPath != null">audio_path,</if>
+            <if test="itemId != null">item_id,</if>
             <if test="recordDate != null">record_date,</if>
             <if test="createBy != null">create_by,</if>
             create_time
@@ -112,6 +117,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="aiReply != null">#{aiReply},</if>
             <if test="rawText != null">#{rawText},</if>
             <if test="audioPath != null">#{audioPath},</if>
+            <if test="itemId != null">#{itemId},</if>
             <if test="recordDate != null">#{recordDate},</if>
             <if test="createBy != null">#{createBy},</if>
             sysdate()
@@ -126,6 +132,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="studentName != null">student_name = #{studentName},</if>
             <if test="detail != null">detail = #{detail},</if>
             <if test="rawText != null">raw_text = #{rawText},</if>
+            <if test="itemId != null">item_id = #{itemId},</if>
             <if test="recordDate != null">record_date = #{recordDate},</if>
             update_by = #{updateBy},
             update_time = sysdate()

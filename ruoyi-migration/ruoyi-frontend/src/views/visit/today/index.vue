@@ -89,6 +89,14 @@
         <el-button v-if="!voiceMode" type="primary" :disabled="sending" @click="send">发送</el-button>
       </div>
 
+      <!-- 挂到事项（issue #11 第二阶段：录入日志时关联跟进事项） -->
+      <div v-if="isCounselor" class="item-link-row">
+        <span class="item-link-label">挂到事项：</span>
+        <el-select v-model="selectedItemId" placeholder="不关联（普通日志）" clearable size="small" style="flex:1">
+          <el-option v-for="it in openItems" :key="it.itemId" :label="`${it.itemNo} ${it.title}`" :value="it.itemId" />
+        </el-select>
+      </div>
+
       <!-- 录音提示 -->
       <div v-if="recording" class="rec-tip">
         <span class="rec-dot"></span>录音中 {{ recSeconds }}s（最长 60 秒，再次点击结束）
@@ -111,6 +119,7 @@ import { ref, computed, onMounted, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import useUserStore from '@/store/modules/user'
 import { chatRecord, voiceRecord, listRecords, orgTree } from '@/api/visit/record'
+import { listItems } from '@/api/visit/item'
 
 const userStore = useUserStore()
 
@@ -316,8 +325,8 @@ async function send() {
       targetDate = preview.recordDate
     }
 
-    // 第二次真正落库（带确认后的日期 + 图片）
-    const res2 = await chatRecord(t, { recordDate: targetDate, files })
+    // 第二次真正落库（带确认后的日期 + 图片 + 关联事项）
+    const res2 = await chatRecord(t, { recordDate: targetDate, files, itemId: selectedItemId.value || undefined })
     const rec = res2.data || {}
     pushMsg('ai', recordReplyText(rec))
   } catch (e) {
@@ -451,7 +460,7 @@ async function sendVoice(wav) {
   scrollBottom()
   recognizing.value = true
   try {
-    const res = await voiceRecord(wav)
+    const res = await voiceRecord(wav, selectedItemId.value || undefined)
     const data = res.data || {}
     messages.value[idx].text = data.text || '（没听清）'
     pushMsg('ai', recordReplyText(data.record || {}))
@@ -576,7 +585,22 @@ onMounted(async () => {
       orgNodes.value = await orgTree()
     } catch { /* 目录加载失败不影响主流程 */ }
   }
+  // 辅导员加载「未结案事项」供录入时关联
+  if (isCounselor.value) {
+    loadOpenItems()
+  }
 })
+
+// ---------- 挂到事项（issue #11 第二阶段） ----------
+const selectedItemId = ref(null)
+const openItems = ref([])
+async function loadOpenItems() {
+  try {
+    const { rows } = await listItems({ pageNum: 1, pageSize: 100, status: '' })
+    // 只保留未结案（pending/following）的事项
+    openItems.value = (rows || []).filter(it => it.status !== 'closed')
+  } catch { /* 事项加载失败不影响录入 */ }
+}
 </script>
 
 <style scoped>
@@ -642,10 +666,15 @@ onMounted(async () => {
 }
 
 /* ---------- 底部输入栏（微信样式） ---------- */
+.item-link-row {
+  display: flex; gap: 8px; align-items: center;
+  margin-top: 8px;
+}
+.item-link-label { font-size: 13px; color: #606266; flex-shrink: 0; }
+
 .input-bar {
   display: flex; gap: 8px; align-items: center;
-  background: #f7f7f7; border-top: 1px solid #e5e5e5;
-  padding: 8px; border-radius: 8px;
+  background: #f7f7f7; border-top: 1px solid #e5e5e5;  padding: 8px; border-radius: 8px;
 }
 .bar-btn {
   width: 38px; height: 38px; flex-shrink: 0;
