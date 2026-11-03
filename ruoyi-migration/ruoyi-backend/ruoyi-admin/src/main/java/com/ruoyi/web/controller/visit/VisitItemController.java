@@ -90,4 +90,26 @@ public class VisitItemController extends BaseController
     {
         return toAjax(visitItemService.deleteVisitItemById(itemId));
     }
+
+    /** 事项跟进时间线 */
+    @PreAuthorize("@ss.hasPermi('visit:item:query')")
+    @GetMapping("/{itemId}/logs")
+    public AjaxResult logs(@PathVariable Long itemId)
+    {
+        return success(visitItemService.selectItemLogs(itemId));
+    }
+
+    /** 手动新增跟进记录 */
+    @PreAuthorize("@ss.hasPermi('visit:item:edit')")
+    @Log(title = "走访事项跟进", businessType = BusinessType.INSERT)
+    @PostMapping("/{itemId}/follow")
+    public AjaxResult follow(@PathVariable Long itemId, @RequestBody java.util.Map<String, String> body)
+    {
+        String content = body == null ? null : body.get("content");
+        if (content == null || content.isBlank())
+        {
+            return error("跟进内容不能为空");
+        }
+        return toAjax(visitItemService.addFollowLog(itemId, content));
+    }
 }

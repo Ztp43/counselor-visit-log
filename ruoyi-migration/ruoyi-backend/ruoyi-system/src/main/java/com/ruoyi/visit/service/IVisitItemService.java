@@ -20,4 +20,10 @@ public interface IVisitItemService
 
     /** 生成事项编号 XS-年份-序号 */
     String generateItemNo();
+
+    /** 事项跟进时间线 */
+    List<com.ruoyi.visit.domain.VisitItemLog> selectItemLogs(Long itemId);
+
+    /** 手动新增跟进记录（action=follow） */
+    int addFollowLog(Long itemId, String content);
 }
