@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.visit.mapper.VisitItemLogMapper">
+
+    <resultMap type="com.ruoyi.visit.domain.VisitItemLog" id="VisitItemLogResult">
+        <id     property="logId"      column="log_id"      />
+        <result property="itemId"     column="item_id"     />
+        <result property="action"     column="action"      />
+        <result property="content"    column="content"     />
+        <result property="fromStatus" column="from_status" />
+        <result property="toStatus"   column="to_status"   />
+        <result property="createBy"   column="create_by"   />
+        <result property="createTime" column="create_time" />
+    </resultMap>
+
+    <select id="selectLogsByItemId" parameterType="Long" resultMap="VisitItemLogResult">
+        select log_id, item_id, action, content, from_status, to_status, create_by, create_time
+        from visit_item_log
+        where item_id = #{itemId}
+        order by create_time asc, log_id asc
+    </select>
+
+    <insert id="insertLog" parameterType="com.ruoyi.visit.domain.VisitItemLog" useGeneratedKeys="true" keyProperty="logId">
+        insert into visit_item_log(
+            item_id, action,
+            <if test="content != null">content,</if>
+            <if test="fromStatus != null">from_status,</if>
+            <if test="toStatus != null">to_status,</if>
+            create_by, create_time
+        ) values(
+            #{itemId}, #{action},
+            <if test="content != null">#{content},</if>
+            <if test="fromStatus != null">#{fromStatus},</if>
+            <if test="toStatus != null">#{toStatus},</if>
+            #{createBy}, sysdate()
+        )
+    </insert>
+</mapper>

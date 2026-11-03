@@ -45,8 +45,9 @@
         <el-table-column prop="dueDate" label="截止" width="100">
           <template #default="scope">{{ scope.row.dueDate ? scope.row.dueDate.slice(0, 10) : '—' }}</template>
         </el-table-column>
-        <el-table-column label="操作" width="180" fixed="right">
+        <el-table-column label="操作" width="240" fixed="right">
           <template #default="scope">
+            <el-button link type="info" size="small" @click="openDetail(scope.row)">详情</el-button>
             <el-button v-if="canEdit" link type="primary" size="small" @click="openEdit(scope.row)">编辑</el-button>
             <el-button v-if="canEdit && scope.row.status !== 'closed'" link type="success" size="small" @click="doClose(scope.row)">结案</el-button>
             <el-button v-if="canEdit" link type="danger" size="small" @click="doDelete(scope.row)">删除</el-button>
@@ -98,6 +99,40 @@
         <el-button type="primary" @click="save">保存</el-button>
       </template>
     </el-dialog>
+
+    <!-- 事项详情 + 跟进时间线 -->
+    <el-dialog v-model="detailVisible" :title="detailItem ? `${detailItem.itemNo} · ${detailItem.title}` : '事项详情'" width="560px">
+      <div v-if="detailItem" class="detail-meta">
+        <el-tag :type="statusTag(detailItem.status)" size="small">{{ statusCn(detailItem.status) }}</el-tag>
+        <span class="meta-item">类别：{{ categoryCn(detailItem.category) }}</span>
+        <span class="meta-item">责任人：{{ detailItem.assigneeName || '—' }}</span>
+        <span class="meta-item">截止：{{ detailItem.dueDate ? detailItem.dueDate.slice(0, 10) : '—' }}</span>
+      </div>
+      <div v-if="detailItem" class="detail-desc">{{ detailItem.description || '（无详情描述）' }}</div>
+
+      <div class="timeline-title">跟进时间线</div>
+      <div v-if="!logs.length" class="empty">暂无跟进记录</div>
+      <el-timeline v-else>
+        <el-timeline-item
+          v-for="lg in logs"
+          :key="lg.logId"
+          :type="actionType(lg.action)"
+          :timestamp="fmtTime(lg.createTime)"
+        >
+          <div class="log-content">{{ actionLabel(lg.action) }}：{{ lg.content }}</div>
+          <div class="log-by">{{ lg.createBy }}</div>
+        </el-timeline-item>
+      </el-timeline>
+
+      <div v-if="canEdit && detailItem && detailItem.status !== 'closed'" class="follow-row">
+        <el-input v-model="followContent" placeholder="记录一次跟进进展，如「已联系家长，约定下周面谈」" />
+        <el-button type="primary" size="small" @click="addFollow">新增跟进</el-button>
+      </div>
+
+      <template #footer>
+        <el-button @click="detailVisible = false">关闭</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -106,7 +141,7 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
 import useUserStore from '@/store/modules/user'
-import { listItems, addItem, updateItem, deleteItem } from '@/api/visit/item'
+import { listItems, addItem, updateItem, deleteItem, listItemLogs, addFollowLog } from '@/api/visit/item'
 
 const userStore = useUserStore()
 const roles = computed(() => userStore.roles || [])
@@ -238,6 +273,49 @@ async function doDelete(row) {
 }
 
 onMounted(load)
+
+// ---------- 详情 + 跟进时间线 ----------
+const detailVisible = ref(false)
+const detailItem = ref(null)
+const logs = ref([])
+const followContent = ref('')
+
+function actionLabel(a) {
+  return { create: '创建', follow: '跟进', status: '状态变更', remark: '备注' }[a] || a
+}
+function actionType(a) {
+  return { create: 'primary', follow: 'success', status: 'warning', remark: 'info' }[a] || 'primary'
+}
+function fmtTime(t) {
+  if (!t) return ''
+  const d = new Date(t)
+  const p = n => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`
+}
+
+async function openDetail(row) {
+  detailItem.value = row
+  detailVisible.value = true
+  logs.value = []
+  followContent.value = ''
+  try {
+    logs.value = await listItemLogs(row.itemId)
+  } catch {
+    logs.value = []
+  }
+}
+
+async function addFollow() {
+  if (!followContent.value.trim()) { ElMessage.warning('请填写跟进内容'); return }
+  try {
+    await addFollowLog(detailItem.value.itemId, followContent.value.trim())
+    followContent.value = ''
+    ElMessage.success('已记录跟进')
+    logs.value = await listItemLogs(detailItem.value.itemId)
+  } catch (e) {
+    ElMessage.error(e?.message || '记录失败')
+  }
+}
 </script>
 
 <style scoped>
@@ -249,4 +327,11 @@ onMounted(load)
 .empty-icon { font-size: 44px; margin-bottom: 12px; }
 .empty-title { font-size: 15px; color: #606266; margin-bottom: 6px; }
 .empty-desc { font-size: 13px; color: #909399; }
+.detail-meta { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
+.meta-item { font-size: 13px; color: #606266; }
+.detail-desc { font-size: 14px; color: #303133; background: #f7f8fa; padding: 10px 12px; border-radius: 6px; margin-bottom: 16px; line-height: 1.6; }
+.timeline-title { font-size: 14px; font-weight: 600; color: #303133; margin-bottom: 12px; }
+.log-content { font-size: 13px; color: #303133; }
+.log-by { font-size: 12px; color: #909399; margin-top: 2px; }
+.follow-row { display: flex; gap: 8px; margin-top: 16px; }
 </style>

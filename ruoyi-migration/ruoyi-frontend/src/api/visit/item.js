@@ -38,3 +38,19 @@ export function deleteItem(itemId) {
     method: 'delete'
   })
 }
+
+// 跟进时间线
+export function listItemLogs(itemId) {
+  return request({
+    url: '/visit/item/' + itemId + '/logs',
+    method: 'get'
+  }).then(res => res.data || [])
+}
+
+export function addFollowLog(itemId, content) {
+  return request({
+    url: '/visit/item/' + itemId + '/follow',
+    method: 'post',
+    data: { content }
+  })
+}
