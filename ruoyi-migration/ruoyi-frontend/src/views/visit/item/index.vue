@@ -10,6 +10,17 @@
         </div>
       </template>
 
+      <!-- 统计条（各状态数量 + 超期提醒） -->
+      <div class="stats-bar">
+        <span class="stat-item">全部 <b>{{ stats.total || 0 }}</b></span>
+        <span class="stat-item stat-pending">待处理 <b>{{ stats.pending || 0 }}</b></span>
+        <span class="stat-item stat-following">跟进中 <b>{{ stats.following || 0 }}</b></span>
+        <span class="stat-item stat-closed">已结案 <b>{{ stats.closed || 0 }}</b></span>
+        <span class="stat-item stat-overdue" :class="{ 'has-overdue': (stats.overdue || 0) > 0 }">
+          超期 <b>{{ stats.overdue || 0 }}</b>
+        </span>
+      </div>
+
       <!-- 筛选 -->
       <div class="filters">
         <el-input v-model="query.title" placeholder="搜索标题 / 学生…" clearable style="flex:1;min-width:160px" @input="onSearch" />
@@ -42,8 +53,11 @@
           </template>
         </el-table-column>
         <el-table-column prop="assigneeName" label="责任人" width="100" />
-        <el-table-column prop="dueDate" label="截止" width="100">
-          <template #default="scope">{{ scope.row.dueDate ? scope.row.dueDate.slice(0, 10) : '—' }}</template>
+        <el-table-column label="截止" width="120">
+          <template #default="scope">
+            <span v-if="isOverdue(scope.row)" class="overdue-text">超期 {{ overdueDays(scope.row) }} 天</span>
+            <span v-else>{{ scope.row.dueDate ? scope.row.dueDate.slice(0, 10) : '—' }}</span>
+          </template>
         </el-table-column>
         <el-table-column label="操作" width="240" fixed="right">
           <template #default="scope">
@@ -79,6 +93,11 @@
         </el-form-item>
         <el-form-item label="涉及学生">
           <el-input v-model="form.studentName" placeholder="没有具体学生可留空；多人用「、」分隔" />
+        </el-form-item>
+        <el-form-item label="责任人">
+          <el-select v-model="form.assigneeId" placeholder="不指派（默认创建人跟进）" clearable style="width:100%">
+            <el-option v-for="a in assignees" :key="a.userId" :label="a.name" :value="a.userId" />
+          </el-select>
         </el-form-item>
         <el-form-item label="事项详情">
           <el-input v-model="form.description" type="textarea" :rows="3" placeholder="问题的具体情况、背景、进展…" />
@@ -141,7 +160,7 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
 import useUserStore from '@/store/modules/user'
-import { listItems, addItem, updateItem, deleteItem, listItemLogs, addFollowLog } from '@/api/visit/item'
+import { listItems, addItem, updateItem, deleteItem, listItemLogs, addFollowLog, listAssignees, itemStats } from '@/api/visit/item'
 
 const userStore = useUserStore()
 const roles = computed(() => userStore.roles || [])
@@ -208,12 +227,41 @@ const dialogVisible = ref(false)
 const editing = ref(false)
 const form = reactive({})
 let editingId = null
+const assignees = ref([])
+
+async function loadAssignees() {
+  try {
+    assignees.value = await listAssignees()
+  } catch { assignees.value = [] }
+}
+
+// ---------- 统计 + 超期 ----------
+const stats = ref({})
+async function loadStats() {
+  try {
+    stats.value = await itemStats()
+  } catch { stats.value = {} }
+}
+
+function isOverdue(row) {
+  return row.status !== 'closed' && row.dueDate && new Date(row.dueDate) < new Date(todayOnly())
+}
+function overdueDays(row) {
+  if (!row.dueDate) return 0
+  const diff = new Date(todayOnly()) - new Date(row.dueDate)
+  return Math.floor(diff / (1000 * 60 * 60 * 24))
+}
+function todayOnly() {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
 
 function openAdd() {
   editing.value = false
   editingId = null
   Object.keys(form).forEach(k => delete form[k])
   form.status = 'pending'
+  loadAssignees()
   dialogVisible.value = true
 }
 
@@ -223,6 +271,7 @@ function openEdit(row) {
   form.title = row.title
   form.category = row.category
   form.studentName = row.studentName
+  form.assigneeId = row.assigneeId
   form.description = row.description
   form.status = row.status
   form.dueDate = row.dueDate ? row.dueDate.slice(0, 10) : ''
@@ -241,6 +290,7 @@ async function save() {
     dialogVisible.value = false
     ElMessage.success('已保存')
     load()
+    loadStats()
   } catch (e) {
     ElMessage.error(e?.message || '保存失败')
   }
@@ -254,6 +304,7 @@ async function doClose(row) {
     await updateItem({ itemId: row.itemId, status: 'closed' })
     ElMessage.success('已结案')
     load()
+    loadStats()
   } catch (e) {
     ElMessage.error(e?.message || '操作失败')
   }
@@ -267,12 +318,13 @@ async function doDelete(row) {
     await deleteItem(row.itemId)
     ElMessage.success('已删除')
     load()
+    loadStats()
   } catch (e) {
     ElMessage.error(e?.message || '删除失败')
   }
 }
 
-onMounted(load)
+onMounted(() => { load(); loadAssignees(); loadStats() })
 
 // ---------- 详情 + 跟进时间线 ----------
 const detailVisible = ref(false)
@@ -322,6 +374,16 @@ async function addFollow() {
 .card-header { display: flex; justify-content: space-between; align-items: center; }
 .head-btns { display: flex; gap: 8px; }
 .filters { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+.stats-bar { display: flex; gap: 18px; align-items: center; padding: 10px 14px; background: #f7f8fa; border-radius: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+.stat-item { font-size: 13px; color: #606266; }
+.stat-item b { font-size: 16px; margin-left: 2px; }
+.stat-pending b { color: #f56c6c; }
+.stat-following b { color: #e6a23c; }
+.stat-closed b { color: #67c23a; }
+.stat-overdue b { color: #909399; }
+.stat-overdue.has-overdue b { color: #f56c6c; }
+.stat-overdue.has-overdue { font-weight: 600; }
+.overdue-text { color: #f56c6c; font-weight: 600; font-size: 13px; }
 .empty { text-align: center; color: #909399; padding: 30px 0; font-size: 14px; }
 .empty-state { padding: 48px 0; }
 .empty-icon { font-size: 44px; margin-bottom: 12px; }

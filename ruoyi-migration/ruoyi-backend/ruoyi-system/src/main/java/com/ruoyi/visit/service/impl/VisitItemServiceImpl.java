@@ -113,6 +113,20 @@ public class VisitItemServiceImpl implements IVisitItemService
         return visitItemLogMapper.insertLog(log);
     }
 
+    @Override
+    @DataScope(userAlias = "i", deptAlias = "i")
+    public java.util.Map<String, Object> itemStats(VisitItem query)
+    {
+        VisitItem q = (query != null) ? query : new VisitItem();
+        q.getParams(); // 触发 params 懒初始化，供 @DataScope 注入
+        List<java.util.Map<String, Object>> rows = visitItemMapper.selectItemStats(q);
+        if (rows == null || rows.isEmpty())
+        {
+            return new java.util.HashMap<>();
+        }
+        return rows.get(0);
+    }
+
     /** 写一条时间线（自动） */
     private void writeLog(Long itemId, String action, String content, String from, String to)
     {

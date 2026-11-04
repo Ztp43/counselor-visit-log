@@ -17,6 +17,7 @@ import com.ruoyi.common.core.page.TableDataInfo;
 import com.ruoyi.common.enums.BusinessType;
 import com.ruoyi.visit.domain.VisitItem;
 import com.ruoyi.visit.service.IVisitItemService;
+import com.ruoyi.visit.service.IVisitOrgService;
 
 /**
  * 走访事项台账（issue #11 事项/跟进闭环体系）
@@ -26,10 +27,12 @@ import com.ruoyi.visit.service.IVisitItemService;
 public class VisitItemController extends BaseController
 {
     private final IVisitItemService visitItemService;
+    private final IVisitOrgService visitOrgService;
 
-    public VisitItemController(IVisitItemService visitItemService)
+    public VisitItemController(IVisitItemService visitItemService, IVisitOrgService visitOrgService)
     {
         this.visitItemService = visitItemService;
+        this.visitOrgService = visitOrgService;
     }
 
     /** 事项列表（分页，四级数据权限） */
@@ -111,5 +114,21 @@ public class VisitItemController extends BaseController
             return error("跟进内容不能为空");
         }
         return toAjax(visitItemService.addFollowLog(itemId, content));
+    }
+
+    /** 责任人候选列表（本学院辅导员，issue #11 第四阶段） */
+    @PreAuthorize("@ss.hasPermi('visit:item:list')")
+    @GetMapping("/assignees")
+    public AjaxResult assignees()
+    {
+        return success(visitOrgService.assigneeCandidates());
+    }
+
+    /** 事项统计（各状态数量 + 超期数，issue #11 第五阶段） */
+    @PreAuthorize("@ss.hasPermi('visit:item:list')")
+    @GetMapping("/stats")
+    public AjaxResult stats(VisitItem item)
+    {
+        return success(visitItemService.itemStats(item));
     }
 }

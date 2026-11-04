@@ -26,4 +26,7 @@ public interface IVisitItemService
 
     /** 手动新增跟进记录（action=follow） */
     int addFollowLog(Long itemId, String content);
+
+    /** 事项统计（各状态数量 + 超期数） */
+    java.util.Map<String, Object> itemStats(VisitItem query);
 }
