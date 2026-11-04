@@ -91,4 +91,29 @@ public class VisitOrgServiceImpl implements IVisitOrgService
         }
         return result;
     }
+
+    @Override
+    public List<Map<String, Object>> assigneeCandidates()
+    {
+        boolean isAdmin = SecurityUtils.isAdmin();
+        boolean isAdminOrSchool = isAdmin || SecurityUtils.hasRole("school_leader");
+        List<VisitCounselor> users = visitOrgMapper.selectCounselorUsers();
+
+        // 非 admin/学校领导（即学院领导、辅导员）：只看本学院
+        if (!isAdminOrSchool)
+        {
+            Long myDeptId = SecurityUtils.getDeptId();
+            users.removeIf(u -> u.getDeptId() == null || !u.getDeptId().equals(myDeptId));
+        }
+
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (VisitCounselor u : users)
+        {
+            Map<String, Object> item = new LinkedHashMap<>();
+            item.put("userId", u.getId());
+            item.put("name", u.getName());
+            result.add(item);
+        }
+        return result;
+    }
 }

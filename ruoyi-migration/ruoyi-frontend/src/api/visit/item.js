@@ -54,3 +54,19 @@ export function addFollowLog(itemId, content) {
     data: { content }
   })
 }
+
+// 责任人候选（本学院辅导员）
+export function listAssignees() {
+  return request({
+    url: '/visit/item/assignees',
+    method: 'get'
+  }).then(res => res.data || [])
+}
+
+// 事项统计
+export function itemStats() {
+  return request({
+    url: '/visit/item/stats',
+    method: 'get'
+  }).then(res => res.data || {})
+}

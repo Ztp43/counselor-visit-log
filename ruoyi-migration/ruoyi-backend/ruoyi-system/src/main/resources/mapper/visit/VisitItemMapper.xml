@@ -60,6 +60,21 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         where item_no like concat(#{yearPrefix}, '%') and deleted_at is null
     </select>
 
+    <!-- 事项统计：各状态数量 + 超期数（未结案且已过截止） -->
+    <select id="selectItemStats" parameterType="com.ruoyi.visit.domain.VisitItem" resultType="java.util.Map">
+        select
+            count(*) as total,
+            sum(case when i.status = 'pending' then 1 else 0 end) as pending,
+            sum(case when i.status = 'following' then 1 else 0 end) as following,
+            sum(case when i.status = 'closed' then 1 else 0 end) as closed,
+            sum(case when i.status != 'closed' and i.due_date is not null and i.due_date &lt; curdate() then 1 else 0 end) as overdue
+        from visit_item i
+        <where>
+            i.deleted_at is null
+            ${params.dataScope}
+        </where>
+    </select>
+
     <insert id="insertVisitItem" parameterType="com.ruoyi.visit.domain.VisitItem" useGeneratedKeys="true" keyProperty="itemId">
         insert into visit_item(
             <if test="itemNo != null">item_no,</if>

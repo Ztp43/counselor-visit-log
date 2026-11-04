@@ -20,4 +20,7 @@ public interface VisitItemMapper
 
     /** 取某年份的最大序号（用于生成 XS-年份-序号 编号） */
     Integer selectMaxSeqOfYear(String yearPrefix);
+
+    /** 事项统计：各状态数量 + 超期数（未结案且已过截止） */
+    List<java.util.Map<String, Object>> selectItemStats(VisitItem item);
 }

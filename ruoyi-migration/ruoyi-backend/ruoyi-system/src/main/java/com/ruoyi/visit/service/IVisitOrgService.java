@@ -17,4 +17,12 @@ public interface IVisitOrgService
      * 返回 [{ collegeId, collegeName, counselors: [{id,name,username,role}] }]
      */
     List<Map<String, Object>> orgTree();
+
+    /**
+     * 责任人候选列表（事项指派用）：
+     *   admin / school_leader：全校辅导员
+     *   college_leader / counselor：本学院辅导员
+     * 返回 [{ userId, name }]
+     */
+    List<Map<String, Object>> assigneeCandidates();
 }
