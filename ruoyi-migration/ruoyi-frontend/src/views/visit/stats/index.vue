@@ -30,6 +30,30 @@
           </div>
         </div>
 
+        <!-- 处置成效（issue #12：区分工作量与处置成效） -->
+        <div class="effect-block">
+          <div class="effect-title">🎯 处置成效（事项闭环）</div>
+          <div class="effect-grid">
+            <div class="effect-item e-pending">
+              <div class="enum">{{ effect.pending ?? '--' }}</div>
+              <div class="elabel">待处理</div>
+            </div>
+            <div class="effect-item e-following">
+              <div class="enum">{{ effect.following ?? '--' }}</div>
+              <div class="elabel">跟进中</div>
+            </div>
+            <div class="effect-item e-closed">
+              <div class="enum">{{ effect.closed ?? '--' }}</div>
+              <div class="elabel">已结案</div>
+            </div>
+            <div class="effect-item e-rate">
+              <div class="enum">{{ effectClosedRate }}</div>
+              <div class="elabel">闭环率</div>
+            </div>
+          </div>
+          <div class="effect-hint">已结案事项 = 处置闭环的学生问题；闭环率 = 已结案 ÷ 全部事项</div>
+        </div>
+
         <div class="chart">
           <div v-if="!recent.length" class="empty empty-state">
             <div class="empty-icon">📊</div>
@@ -53,6 +77,7 @@
 import { ref, computed, onMounted } from 'vue'
 import useUserStore from '@/store/modules/user'
 import { monthlyStats, orgTree } from '@/api/visit/record'
+import { itemStats } from '@/api/visit/item'
 
 const userStore = useUserStore()
 const roles = computed(() => userStore.roles || [])
@@ -73,6 +98,7 @@ const EVENT_TYPES = {
 
 const stats = ref([])
 const errorMsg = ref('')
+const effect = ref({})   // 处置成效（事项闭环数据）
 
 // 三级目录（领导/管理员可见）
 const orgNodes = ref([])
@@ -106,6 +132,14 @@ function monthLabel(m) {
   return parseInt(m.slice(5), 10) + '月'
 }
 
+// 处置成效：闭环率 = 已结案 / 全部
+const effectClosedRate = computed(() => {
+  const total = Number(effect.value.total || 0)
+  const closed = Number(effect.value.closed || 0)
+  if (total === 0) return '--'
+  return Math.round(closed / total * 100) + '%'
+})
+
 async function load(userId) {
   errorMsg.value = ''
   try {
@@ -114,6 +148,10 @@ async function load(userId) {
     errorMsg.value = e?.message || '未知错误'
     stats.value = []
   }
+  // 处置成效（事项闭环）：失败不影响主统计
+  try {
+    effect.value = await itemStats()
+  } catch { effect.value = {} }
 }
 
 onMounted(async () => {
@@ -149,6 +187,19 @@ onMounted(async () => {
 .t-admin       { background: #eef3f8; } .t-admin       .num { color: #5b7a99; } .t-admin       .label { color: #5b7a99; }
 .t-other       { background: #f4f4f5; } .t-other       .num { color: #909399; } .t-other       .label { color: #909399; }
 
+/* 处置成效区块（issue #12） */
+.effect-block { margin-bottom: 20px; padding: 14px; border-radius: 10px; background: #fbfbfc; border: 1px solid #f0f0f0; }
+.effect-title { font-size: 14px; font-weight: 600; color: #303133; margin-bottom: 12px; }
+.effect-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.effect-item { border-radius: 8px; padding: 12px; text-align: center; }
+.effect-item .enum { font-size: 24px; font-weight: 700; }
+.effect-item .elabel { font-size: 12px; margin-top: 4px; opacity: 0.85; }
+.e-pending   { background: #fdecea; } .e-pending   .enum { color: #f56c6c; } .e-pending   .elabel { color: #f56c6c; }
+.e-following { background: #fff6e5; } .e-following .enum { color: #e6a23c; } .e-following .elabel { color: #e6a23c; }
+.e-closed    { background: #e8f7ee; } .e-closed    .enum { color: #2aa86a; } .e-closed    .elabel { color: #2aa86a; }
+.e-rate      { background: #eaf3ff; } .e-rate      .enum { color: #3375d1; } .e-rate      .elabel { color: #3375d1; }
+.effect-hint { font-size: 12px; color: #909399; margin-top: 10px; }
+
 .chart { margin-top: 8px; }
 .chart-cols { display: flex; align-items: flex-end; gap: 12px; height: 140px; }
 .chart-col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; }
@@ -174,4 +225,13 @@ onMounted(async () => {
 .dark .t-crisis      { background: rgba(229,84,63,0.16); }  .dark .t-crisis      .num, .dark .t-crisis      .label { color: #f5927f; }
 .dark .t-admin       { background: rgba(91,122,153,0.18); } .dark .t-admin       .num, .dark .t-admin       .label { color: #92aec9; }
 .dark .t-other       { background: rgba(144,147,153,0.14); } .dark .t-other       .num, .dark .t-other       .label { color: #a3a6ad; }
+
+/* 成效区块深色 */
+.dark .effect-block { background: #1d1e20; border-color: #2a2b2e; }
+.dark .effect-title { color: #e5e6eb; }
+.dark .effect-hint { color: #8a8d93; }
+.dark .e-pending   { background: rgba(245,108,108,0.16); } .dark .e-pending   .enum, .dark .e-pending   .elabel { color: #f5927f; }
+.dark .e-following { background: rgba(230,162,60,0.16); } .dark .e-following .enum, .dark .e-following .elabel { color: #f2c379; }
+.dark .e-closed    { background: rgba(42,168,106,0.16); } .dark .e-closed    .enum, .dark .e-closed    .elabel { color: #6fd3a0; }
+.dark .e-rate      { background: rgba(51,117,209,0.16); } .dark .e-rate      .enum, .dark .e-rate      .elabel { color: #82b1ec; }
 </style>
