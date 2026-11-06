@@ -68,8 +68,9 @@ public class VisitItemServiceImpl implements IVisitItemService
     @Transactional
     public int updateVisitItem(VisitItem item)
     {
-        // 状态变更时自动写时间线（先取旧状态）
+        // issue #24：归属校验，防水平越权
         VisitItem old = visitItemMapper.selectVisitItemById(item.getItemId());
+        OwnershipGuard.check(old != null ? old.getUserId() : null);
         String oldStatus = old != null ? old.getStatus() : null;
         int rows = visitItemMapper.updateVisitItem(item);
 
@@ -84,6 +85,9 @@ public class VisitItemServiceImpl implements IVisitItemService
     @Override
     public int deleteVisitItemById(Long itemId)
     {
+        // issue #24：归属校验
+        VisitItem exist = visitItemMapper.selectVisitItemById(itemId);
+        OwnershipGuard.check(exist != null ? exist.getUserId() : null);
         return visitItemMapper.softDeleteVisitItem(itemId);
     }
 
@@ -105,6 +109,10 @@ public class VisitItemServiceImpl implements IVisitItemService
     @Override
     public int addFollowLog(Long itemId, String content)
     {
+        // issue #24：归属校验（跟进写入也属于对该事项的写操作）
+        VisitItem exist = visitItemMapper.selectVisitItemById(itemId);
+        OwnershipGuard.check(exist != null ? exist.getUserId() : null);
+
         VisitItemLog log = new VisitItemLog();
         log.setItemId(itemId);
         log.setAction("follow");
