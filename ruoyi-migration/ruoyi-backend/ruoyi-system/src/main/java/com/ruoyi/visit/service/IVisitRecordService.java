@@ -40,4 +40,7 @@ public interface IVisitRecordService
 
     /** 彻底删除 */
     int deleteVisitRecordById(Long recordId);
+
+    /** 敏感记录访问审计（issue #13） */
+    List<com.ruoyi.visit.domain.VisitAccessLog> selectAccessLogs(Long recordId);
 }

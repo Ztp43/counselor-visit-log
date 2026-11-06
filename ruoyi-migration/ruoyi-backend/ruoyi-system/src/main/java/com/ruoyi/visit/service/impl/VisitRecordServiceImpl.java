@@ -13,6 +13,8 @@ import com.ruoyi.common.annotation.DataScope;
 import com.ruoyi.common.utils.SecurityUtils;
 import com.ruoyi.visit.domain.VisitPhoto;
 import com.ruoyi.visit.domain.VisitRecord;
+import com.ruoyi.visit.domain.VisitAccessLog;
+import com.ruoyi.visit.mapper.VisitAccessLogMapper;
 import com.ruoyi.visit.mapper.VisitPhotoMapper;
 import com.ruoyi.visit.mapper.VisitRecordMapper;
 import com.ruoyi.visit.service.IStorageService;
@@ -41,6 +43,9 @@ public class VisitRecordServiceImpl implements IVisitRecordService
     @Autowired
     private IStorageService storageService;
 
+    @Autowired
+    private VisitAccessLogMapper visitAccessLogMapper;
+
     /** 九类工作类型（与老系统 EventTypes 一致，供统计补零） */
     private static final String[] EVENT_TYPES = {
         "dorm_check", "hygiene", "talk", "class_check", "meeting",
@@ -55,6 +60,7 @@ public class VisitRecordServiceImpl implements IVisitRecordService
         // 回填照片（每条记录查一次 visit_photo，列表通常 ≤ 20 条，代价可接受）
         for (VisitRecord r : list) {
             r.setPhotos(loadPhotoUrls(r.getRecordId()));
+            maskIfNeeded(r);   // issue #13：敏感记录脱敏
         }
         return list;
     }
@@ -65,8 +71,77 @@ public class VisitRecordServiceImpl implements IVisitRecordService
         VisitRecord r = visitRecordMapper.selectVisitRecordById(recordId);
         if (r != null) {
             r.setPhotos(loadPhotoUrls(recordId));
+            // issue #13：访问留痕（查看敏感记录详情时记录审计）
+            auditAccessIfSensitive(r);
+            maskIfNeeded(r);
         }
         return r;
+    }
+
+    /**
+     * 敏感记录脱敏（issue #13）：
+     * 若当前用户「不是本人、不是领导、不是管理员」，则对敏感事件的
+     * detail/rawText/studentName/aiReply 脱敏为 ***。
+     */
+    private void maskIfNeeded(VisitRecord r)
+    {
+        if (!SensitiveGuard.isSensitive(r.getEventType()))
+        {
+            return;
+        }
+        // 本人 / 领导 / 管理员：可看完整内容
+        if (canViewSensitive(r))
+        {
+            return;
+        }
+        // 平级辅导员：脱敏
+        r.setDetail(SensitiveGuard.mask(r.getDetail()));
+        r.setRawText(SensitiveGuard.mask(r.getRawText()));
+        r.setStudentName(SensitiveGuard.mask(r.getStudentName()));
+        r.setAiReply(SensitiveGuard.mask(r.getAiReply()));
+    }
+
+    /** 当前用户能否看敏感记录的完整内容：管理员/领导放行，辅导员仅本人 */
+    private boolean canViewSensitive(VisitRecord r)
+    {
+        if (SecurityUtils.isAdmin())
+        {
+            return true;
+        }
+        if (SecurityUtils.hasRole("school_leader") || SecurityUtils.hasRole("college_leader"))
+        {
+            return true;
+        }
+        Long currentUserId = SecurityUtils.getUserId();
+        return r.getUserId() != null && r.getUserId().equals(currentUserId);
+    }
+
+    /** 敏感记录访问留痕（issue #13）：查看敏感记录详情时写审计 */
+    private void auditAccessIfSensitive(VisitRecord r)
+    {
+        if (!SensitiveGuard.isSensitive(r.getEventType()))
+        {
+            return;
+        }
+        try
+        {
+            VisitAccessLog log = new VisitAccessLog();
+            log.setRecordId(r.getRecordId());
+            log.setRecordType(r.getEventType());
+            log.setViewerId(SecurityUtils.getUserId());
+            log.setViewerName(SecurityUtils.getUsername());
+            visitAccessLogMapper.insertAccessLog(log);
+        }
+        catch (Exception ignored)
+        {
+            // 审计失败不影响主流程（但记日志便于排查）
+        }
+    }
+
+    @Override
+    public List<VisitAccessLog> selectAccessLogs(Long recordId)
+    {
+        return visitAccessLogMapper.selectAccessLogs(recordId);
     }
 
     @Override
