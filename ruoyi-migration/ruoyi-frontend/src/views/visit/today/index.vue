@@ -115,7 +115,7 @@
 </template>
 
 <script setup name="Today">
-import { ref, computed, onMounted, nextTick } from 'vue'
+import { ref, computed, onMounted, onActivated, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import useUserStore from '@/store/modules/user'
 import { chatRecord, voiceRecord, listRecords, orgTree } from '@/api/visit/record'
@@ -586,6 +586,14 @@ onMounted(async () => {
     } catch { /* 目录加载失败不影响主流程 */ }
   }
   // 辅导员加载「未结案事项」供录入时关联
+  if (isCounselor.value) {
+    loadOpenItems()
+  }
+})
+
+// issue #30：页面被 keep-alive 缓存，切回时 onMounted 不触发，
+// 导致「挂到事项」下拉框停留在旧的空数据。用 onActivated 在每次切回时刷新。
+onActivated(() => {
   if (isCounselor.value) {
     loadOpenItems()
   }
