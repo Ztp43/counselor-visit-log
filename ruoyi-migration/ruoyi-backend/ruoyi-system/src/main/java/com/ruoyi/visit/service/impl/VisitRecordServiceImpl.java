@@ -168,6 +168,9 @@ public class VisitRecordServiceImpl implements IVisitRecordService
     @Override
     public int updateVisitRecord(VisitRecord record)
     {
+        // issue #24：归属校验，防水平越权
+        VisitRecord exist = visitRecordMapper.selectVisitRecordById(record.getRecordId());
+        OwnershipGuard.check(exist != null ? exist.getUserId() : null);
         record.setUpdateBy(SecurityUtils.getUsername());
         return visitRecordMapper.updateVisitRecord(record);
     }
@@ -175,24 +178,33 @@ public class VisitRecordServiceImpl implements IVisitRecordService
     @Override
     public int softDeleteVisitRecord(Long recordId)
     {
+        // issue #24：归属校验
+        VisitRecord exist = visitRecordMapper.selectVisitRecordById(recordId);
+        OwnershipGuard.check(exist != null ? exist.getUserId() : null);
         return visitRecordMapper.softDeleteVisitRecord(recordId);
     }
 
     @Override
     public int restoreVisitRecord(Long recordId)
     {
+        // issue #24：归属校验
+        VisitRecord exist = visitRecordMapper.selectVisitRecordById(recordId);
+        OwnershipGuard.check(exist != null ? exist.getUserId() : null);
         return visitRecordMapper.restoreVisitRecord(recordId);
     }
 
     @Override
     public int deleteVisitRecordById(Long recordId)
     {
+        // issue #24：归属校验（物理删除前先查归属）
+        VisitRecord rec = visitRecordMapper.selectVisitRecordById(recordId);
+        OwnershipGuard.check(rec != null ? rec.getUserId() : null);
+
         // 物理删除前，先收集要删的磁盘文件（照片 + 录音）
         List<String> photoFiles = new ArrayList<>();
         for (VisitPhoto p : visitPhotoMapper.selectPhotosByRecordId(recordId)) {
             photoFiles.add(p.getFilePath());
         }
-        VisitRecord rec = visitRecordMapper.selectVisitRecordById(recordId);
         String audioFile = rec != null ? rec.getAudioPath() : null;
 
         int rows = visitRecordMapper.deleteVisitRecordById(recordId);
