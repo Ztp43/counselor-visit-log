@@ -414,6 +414,14 @@ public class VisitRecordController extends BaseController
         return success(visitRecordService.selectVisitRecordById(recordId));
     }
 
+    /** 敏感记录访问审计日志（issue #13，仅管理员可查） */
+    @PreAuthorize("@ss.hasPermi('visit:record:list')")
+    @GetMapping("/access-log/{recordId}")
+    public AjaxResult accessLog(@PathVariable Long recordId)
+    {
+        return success(visitRecordService.selectAccessLogs(recordId));
+    }
+
     /**
      * 新增记录（AI 识别 + 补录日期）
      */
