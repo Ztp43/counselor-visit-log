@@ -206,6 +206,44 @@ public class AiServiceImpl implements IAiService
         return result;
     }
 
+    @Override
+    public String generateSummary(String dataJson)
+    {
+        String apiKey = config.getDeepseek().getApiKey();
+        if (apiKey == null || apiKey.isBlank())
+        {
+            log.warn("未配置 DeepSeek Key，总结报告退回模板拼接");
+            return null;
+        }
+        try
+        {
+            String url = config.getDeepseek().getBaseUrl() + "/chat/completions";
+            Map<String, Object> body = new LinkedHashMap<>();
+            body.put("model", "deepseek-chat");
+            body.put("messages", List.of(
+                    Map.of("role", "system", "content",
+                            "你是高校辅导员工作日志的总结助手。请根据给定的量化统计数据，" +
+                            "用简洁、客观、正式的中文写一段 150~250 字的工作总结，突出工作量与处置成效，" +
+                            "不要罗列数字，要归纳成自然流畅的陈述。只输出总结正文，不要标题、不要编号、不要 markdown。"),
+                    Map.of("role", "user", "content", "以下是某辅导员在某个时间段的工作统计数据（JSON）：\n" + dataJson)));
+            body.put("temperature", 0.5);
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.set("Authorization", "Bearer " + apiKey);
+            HttpEntity<Map<String, Object>> req = new HttpEntity<>(body, headers);
+
+            ResponseEntity<String> resp = restTemplate.postForEntity(url, req, String.class);
+            JsonNode root = objectMapper.readTree(resp.getBody());
+            return root.path("choices").get(0).path("message").path("content").asText("").strip();
+        }
+        catch (Exception e)
+        {
+            log.warn("DeepSeek 总结生成失败：{}", e.getMessage());
+            return null;
+        }
+    }
+
     private boolean containsAny(String text, String... keywords)
     {
         for (String k : keywords)
