@@ -213,3 +213,24 @@ onMounted(async () => {
   .report-area { border: none; }
 }
 </style>
+
+<style>
+/* issue #40：打印时只导出报告正文，隐藏若依全局布局（侧边栏/导航/页签/卡片头） */
+@media print {
+  .sidebar-container,
+  .navbar,
+  .tags-view-container,
+  .el-card__header {
+    display: none !important;
+  }
+  .main-container {
+    margin-left: 0 !important;
+  }
+  .app-main {
+    padding: 0 !important;
+  }
+  .app-container {
+    padding: 0 !important;
+  }
+}
+</style>
