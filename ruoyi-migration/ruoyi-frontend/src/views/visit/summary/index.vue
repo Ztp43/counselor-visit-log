@@ -14,7 +14,7 @@
 
       <!-- 周期选择 + 辅导员下钻（领导） -->
       <div class="filters">
-        <el-radio-group v-model="period" @change="load">
+        <el-radio-group v-model="period" @change="onPeriodChange">
           <el-radio-button value="week">本周</el-radio-button>
           <el-radio-button value="month">本月</el-radio-button>
           <el-radio-button value="term">本学期</el-radio-button>
@@ -134,6 +134,16 @@ const cascaderOptions = computed(() =>
 
 function onOrgChange(path) {
   const userId = path && path.length >= 2 ? path[path.length - 1] : undefined
+  load(userId)
+}
+
+// issue #41：el-radio-group 的 change 事件会把选中值（week/month/...）作为参数传给回调，
+// 之前直接 @change="load" 导致 load('month') 把 'month' 当成 targetUserId 传给后端 → 类型不匹配。
+// 这里用独立 handler 忽略 change 传入的 value，并保留当前已选的辅导员下钻。
+function onPeriodChange() {
+  const userId = selectedPath.value && selectedPath.value.length >= 2
+    ? selectedPath.value[selectedPath.value.length - 1]
+    : undefined
   load(userId)
 }
 
