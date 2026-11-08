@@ -153,6 +153,13 @@ function onFiles(e) {
   const files = Array.from(target.files || [])
   target.value = ''
   if (!files.length) return
+  // issue #33：前端大小校验（单张图片最大 5MB，超限直接提示）
+  const MAX_IMG_MB = 5
+  const oversized = files.find(f => f.size > MAX_IMG_MB * 1024 * 1024)
+  if (oversized) {
+    ElMessage.warning(`图片「${oversized.name}」超过 ${MAX_IMG_MB}MB，请压缩后再上传`)
+    return
+  }
   // 图片压缩（长边 1600px、质量 0.8），9 张图约 3-5MB，避免超限+省流量
   compressImages(files).then(compressed => {
     pendingFiles.value.push(...compressed)
@@ -455,6 +462,12 @@ function floatToWav(samples, sampleRate) {
 }
 
 async function sendVoice(wav) {
+  // issue #33：录音大小校验（最大 10MB）
+  const MAX_AUDIO_MB = 10
+  if (wav.size > MAX_AUDIO_MB * 1024 * 1024) {
+    ElMessage.warning(`录音超过 ${MAX_AUDIO_MB}MB，请缩短录音后重试`)
+    return
+  }
   pushMsg('user', '识别中…')
   const idx = messages.value.length - 1
   scrollBottom()
