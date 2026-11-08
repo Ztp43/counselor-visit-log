@@ -158,6 +158,11 @@ visit:
     dir: ${VISIT_UPLOAD_DIR:${RUOYI_PROFILE:D:/ruoyi/uploadPath}}/voice
     # 旧录音目录（兼容回退：新目录找不到的文件回退此处查找）
     legacy-dir: ./uploads
+  # AI 接口限流（issue #32：chat/voice 按「用户ID+IP」限流，防刷额度）
+  ai-rate-limit:
+    enabled: ${AI_RATE_LIMIT_ENABLED:true}
+    time: ${AI_RATE_LIMIT_TIME:60}
+    count: ${AI_RATE_LIMIT_COUNT:30}
   # 数据库定时备份（issue #9：每日快照 + 启动补份，滚动保留）
   backup:
     enabled: ${BACKUP_ENABLED:true}

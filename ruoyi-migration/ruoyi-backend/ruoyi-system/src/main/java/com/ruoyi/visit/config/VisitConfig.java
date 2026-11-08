@@ -14,6 +14,7 @@ public class VisitConfig
     private Deepseek deepseek = new Deepseek();
     private Tencent tencent = new Tencent();
     private Upload upload = new Upload();
+    private AiRateLimit aiRateLimit = new AiRateLimit();
 
     public Deepseek getDeepseek() { return deepseek; }
     public void setDeepseek(Deepseek deepseek) { this.deepseek = deepseek; }
@@ -21,6 +22,8 @@ public class VisitConfig
     public void setTencent(Tencent tencent) { this.tencent = tencent; }
     public Upload getUpload() { return upload; }
     public void setUpload(Upload upload) { this.upload = upload; }
+    public AiRateLimit getAiRateLimit() { return aiRateLimit; }
+    public void setAiRateLimit(AiRateLimit aiRateLimit) { this.aiRateLimit = aiRateLimit; }
 
     public static class Deepseek
     {
@@ -54,5 +57,21 @@ public class VisitConfig
         public void setDir(String dir) { this.dir = dir; }
         public String getLegacyDir() { return legacyDir; }
         public void setLegacyDir(String legacyDir) { this.legacyDir = legacyDir; }
+    }
+
+    public static class AiRateLimit
+    {
+        /** 限流开关（issue #32 预留） */
+        private boolean enabled = true;
+        /** 时间窗口（秒） */
+        private int time = 60;
+        /** 窗口内最大调用次数 */
+        private int count = 30;
+        public boolean isEnabled() { return enabled; }
+        public void setEnabled(boolean enabled) { this.enabled = enabled; }
+        public int getTime() { return time; }
+        public void setTime(int time) { this.time = time; }
+        public int getCount() { return count; }
+        public void setCount(int count) { this.count = count; }
     }
 }

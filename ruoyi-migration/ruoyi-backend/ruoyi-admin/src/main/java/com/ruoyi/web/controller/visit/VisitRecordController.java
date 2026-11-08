@@ -31,6 +31,7 @@ import com.ruoyi.common.enums.BusinessType;
 import com.ruoyi.common.utils.SecurityUtils;
 import com.ruoyi.system.service.ISysUserService;
 import com.ruoyi.visit.domain.VisitRecord;
+import com.ruoyi.visit.annotation.AiRateLimit;
 import com.ruoyi.visit.service.IAiService;
 import com.ruoyi.visit.service.IAsrService;
 import com.ruoyi.visit.service.IReportService;
@@ -232,6 +233,7 @@ public class VisitRecordController extends BaseController
      * dryRun=true 时只返回识别结果不落库（供前端补录日期确认）。
      */
     @PreAuthorize("@ss.hasPermi('visit:record:add')")
+    @AiRateLimit
     @PostMapping("/chat")
     public AjaxResult chat(
             @RequestParam(value = "text", defaultValue = "") String text,
@@ -345,6 +347,7 @@ public class VisitRecordController extends BaseController
      * 语音录入：wav → 腾讯云 ASR → AI 识别 → 落库
      */
     @PreAuthorize("@ss.hasPermi('visit:record:add')")
+    @AiRateLimit
     @PostMapping("/voice")
     public AjaxResult voice(@RequestParam("audio") MultipartFile audio,
                             @RequestParam(value = "itemId", required = false) Long itemId)
