@@ -158,6 +158,9 @@ visit:
     dir: ${VISIT_UPLOAD_DIR:${RUOYI_PROFILE:D:/ruoyi/uploadPath}}/voice
     # 旧录音目录（兼容回退：新目录找不到的文件回退此处查找）
     legacy-dir: ./uploads
+    # issue #33：上传大小限制（业务层校验，低于 Spring 20MB 兜底）
+    max-image-size-mb: ${MAX_IMAGE_SIZE_MB:5}
+    max-audio-size-mb: ${MAX_AUDIO_SIZE_MB:10}
   # AI 接口限流（issue #32：chat/voice 按「用户ID+IP」限流，防刷额度）
   ai-rate-limit:
     enabled: ${AI_RATE_LIMIT_ENABLED:true}

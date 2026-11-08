@@ -69,6 +69,9 @@ public class VisitRecordController extends BaseController
     @Autowired
     private ISysUserService sysUserService;
 
+    @Autowired
+    private com.ruoyi.visit.config.VisitConfig visitConfig;
+
     /**
      * 查询走访记录列表（四级数据权限自动过滤）
      */
@@ -255,6 +258,19 @@ public class VisitRecordController extends BaseController
             return error("请说点什么");
         }
 
+        // issue #33：图片大小校验（在 AI 识别/落库之前拦截，超限直接拒绝，不产生半截记录）
+        if (files != null && files.length > 0)
+        {
+            long maxImageBytes = visitConfig.getUpload().getMaxImageSizeMb() * 1024L * 1024L;
+            for (MultipartFile f : files)
+            {
+                if (f != null && !f.isEmpty() && f.getSize() > maxImageBytes)
+                {
+                    return error("图片大小超过限制（单张最大 " + visitConfig.getUpload().getMaxImageSizeMb() + "MB），请压缩后重试");
+                }
+            }
+        }
+
         Map<String, String> parsed = aiService.parseIntent(text);
 
         // 补录日期优先级：AI 的 record_date > 前端 recordDate
@@ -352,6 +368,13 @@ public class VisitRecordController extends BaseController
     public AjaxResult voice(@RequestParam("audio") MultipartFile audio,
                             @RequestParam(value = "itemId", required = false) Long itemId)
     {
+        // issue #33：录音大小校验（优先于 Spring 兜底）
+        long maxAudioBytes = visitConfig.getUpload().getMaxAudioSizeMb() * 1024L * 1024L;
+        if (audio != null && !audio.isEmpty() && audio.getSize() > maxAudioBytes)
+        {
+            return error("录音大小超过限制（最大 " + visitConfig.getUpload().getMaxAudioSizeMb() + "MB）");
+        }
+
         byte[] data;
         try
         {

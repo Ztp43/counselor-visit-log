@@ -53,10 +53,18 @@ public class VisitConfig
         private String dir = "./uploads";
         /** 旧录音目录（issue #10 目录统一前的位置，兼容回退用） */
         private String legacyDir = "./uploads";
+        /** 单张图片最大大小（MB，issue #33） */
+        private int maxImageSizeMb = 5;
+        /** 单条录音最大大小（MB，issue #33） */
+        private int maxAudioSizeMb = 10;
         public String getDir() { return dir; }
         public void setDir(String dir) { this.dir = dir; }
         public String getLegacyDir() { return legacyDir; }
         public void setLegacyDir(String legacyDir) { this.legacyDir = legacyDir; }
+        public int getMaxImageSizeMb() { return maxImageSizeMb; }
+        public void setMaxImageSizeMb(int maxImageSizeMb) { this.maxImageSizeMb = maxImageSizeMb; }
+        public int getMaxAudioSizeMb() { return maxAudioSizeMb; }
+        public void setMaxAudioSizeMb(int maxAudioSizeMb) { this.maxAudioSizeMb = maxAudioSizeMb; }
     }
 
     public static class AiRateLimit
