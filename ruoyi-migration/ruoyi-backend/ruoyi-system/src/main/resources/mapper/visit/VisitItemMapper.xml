@@ -44,6 +44,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="studentName != null and studentName != ''"> AND i.student_name like concat('%', #{studentName}, '%')</if>
             <if test="status != null and status != ''"> AND i.status = #{status}</if>
             <if test="assigneeId != null and assigneeId != 0"> AND i.assignee_id = #{assigneeId}</if>
+            <if test="params.beginTime != null and params.beginTime != ''"> AND date(i.create_time) &gt;= #{params.beginTime}</if>
+            <if test="params.endTime != null and params.endTime != ''"> AND date(i.create_time) &lt;= #{params.endTime}</if>
             ${params.dataScope}
         </where>
         order by i.item_no desc

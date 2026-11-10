@@ -2,6 +2,7 @@ package com.ruoyi.visit.service;
 
 import java.time.LocalDate;
 import java.util.List;
+import com.ruoyi.visit.domain.VisitItem;
 import com.ruoyi.visit.domain.VisitRecord;
 
 /**
@@ -24,4 +25,22 @@ public interface IReportService
      */
     byte[] buildWeeklyReport(List<VisitRecord> records, String reporterName, String weekLabel,
                              List<LocalDate> days, String titleName);
+
+    /**
+     * 跟进台账报表（issue #35），返回 xlsx 字节。
+     * 对齐台账页面字段：编号/标题/类别/涉及学生/状态/责任人/截止。
+     *
+     * @param items 已按数据权限过滤好的台账
+     * @param reporterName 报告人姓名
+     * @param rangeLabel 统计范围描述
+     * @param titleName 指定辅导员姓名（null=通用标题）
+     */
+    byte[] buildItemReport(List<VisitItem> items, String reporterName, String rangeLabel, String titleName);
+
+    /**
+     * 组合报表（issue #35）：工作表 + 台账两个 sheet 合到一个 xlsx。
+     */
+    byte[] buildCombinedReport(List<VisitRecord> records, List<VisitItem> items,
+                               String reporterName, String rangeLabel, String titleName);
 }
+

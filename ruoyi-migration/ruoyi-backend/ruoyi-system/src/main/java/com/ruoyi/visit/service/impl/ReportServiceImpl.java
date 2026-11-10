@@ -22,6 +22,7 @@ import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Service;
 import com.ruoyi.visit.common.EventTypes;
+import com.ruoyi.visit.domain.VisitItem;
 import com.ruoyi.visit.domain.VisitRecord;
 import com.ruoyi.visit.service.IReportService;
 
@@ -99,6 +100,119 @@ public class ReportServiceImpl implements IReportService
         {
             throw new RuntimeException("周报生成失败", e);
         }
+    }
+
+    @Override
+    public byte[] buildItemReport(List<VisitItem> items, String reporterName, String rangeLabel, String titleName)
+    {
+        try (XSSFWorkbook wb = new XSSFWorkbook())
+        {
+            String info = infoLine(reporterName, rangeLabel, "");
+            String mainTitle = titleName != null ? "辅导员" + titleName + "跟进台账" : "辅导员跟进台账";
+            Sheet sheet = wb.createSheet("跟进台账");
+            buildItemSheet(sheet, items, mainTitle, info);
+
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            wb.write(out);
+            return out.toByteArray();
+        }
+        catch (Exception e)
+        {
+            throw new RuntimeException("台账报表生成失败", e);
+        }
+    }
+
+    @Override
+    public byte[] buildCombinedReport(List<VisitRecord> records, List<VisitItem> items,
+                                      String reporterName, String rangeLabel, String titleName)
+    {
+        try (XSSFWorkbook wb = new XSSFWorkbook())
+        {
+            int total = records.size();
+            Map<String, Integer> counts = countByType(records);
+            String info = infoLine(reporterName, rangeLabel, "");
+            String mainTitle = titleName != null ? "辅导员" + titleName + "工作日志" : "辅导员工作日志报表";
+            String detailTitle = titleName != null ? "辅导员" + titleName + "工作日志明细" : "辅导员工作日志明细";
+
+            // 工作表（3 个 sheet，与原 buildReport 一致）
+            Sheet summary = wb.createSheet("工作汇总");
+            buildSummarySheet(summary, records, counts, total, mainTitle, info);
+            Sheet trend = wb.createSheet("逐月趋势");
+            buildTrendSheet(trend, records, counts, total, info);
+            Sheet detail = wb.createSheet("工作明细");
+            buildDetailSheet(detail, records, detailTitle, info, 8);
+
+            // 台账 sheet
+            String itemTitle = titleName != null ? "辅导员" + titleName + "跟进台账" : "辅导员跟进台账";
+            Sheet itemSheet = wb.createSheet("跟进台账");
+            buildItemSheet(itemSheet, items, itemTitle, info);
+
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            wb.write(out);
+            return out.toByteArray();
+        }
+        catch (Exception e)
+        {
+            throw new RuntimeException("组合报表生成失败", e);
+        }
+    }
+
+    // ==================== 跟进台账页 ====================
+
+    /** 台账 sheet：对齐台账页面字段（编号/标题/类别/涉及学生/状态/责任人/截止） */
+    private void buildItemSheet(Sheet ws, List<VisitItem> items, String title, String info)
+    {
+        int nCols = 7;
+        ws.setColumnWidth(0, 14 * 256);   // 编号
+        ws.setColumnWidth(1, 30 * 256);   // 标题
+        ws.setColumnWidth(2, 12 * 256);   // 类别
+        ws.setColumnWidth(3, 14 * 256);   // 学生
+        ws.setColumnWidth(4, 10 * 256);   // 状态
+        ws.setColumnWidth(5, 14 * 256);   // 责任人
+        ws.setColumnWidth(6, 14 * 256);   // 截止
+
+        banner(ws, title, info, nCols);
+
+        String[] headers = {"编号", "事项标题", "类别", "涉及学生", "状态", "责任人", "截止日期"};
+        int headRow = 3;
+        Row hr = ws.createRow(headRow);
+        for (int i = 0; i < headers.length; i++)
+        {
+            hr.createCell(i).setCellValue(headers[i]);
+        }
+
+        int r = headRow + 1;
+        for (VisitItem it : items)
+        {
+            Row row = ws.createRow(r);
+            row.createCell(0).setCellValue(nvl(it.getItemNo()));
+            row.createCell(1).setCellValue(nvl(it.getTitle()));
+            row.createCell(2).setCellValue(EventTypes.cn(it.getCategory()));
+            row.createCell(3).setCellValue(nvl(it.getStudentName()));
+            row.createCell(4).setCellValue(itemStatusCn(it.getStatus()));
+            row.createCell(5).setCellValue(nvl(it.getAssigneeName()));
+            row.createCell(6).setCellValue(it.getDueDate() == null ? "" :
+                    it.getDueDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDate().format(DAY_FMT));
+            r++;
+        }
+        if (items.isEmpty())
+        {
+            Row row = ws.createRow(r);
+            row.createCell(0).setCellValue("（统计范围内暂无台账）");
+            ws.addMergedRegion(new CellRangeAddress(r, r, 0, nCols - 1));
+        }
+    }
+
+    /** 台账状态中文 */
+    private String itemStatusCn(String status)
+    {
+        if (status == null) return "待处理";
+        return switch (status)
+        {
+            case "following" -> "跟进中";
+            case "closed" -> "已结案";
+            default -> "待处理";
+        };
     }
 
     // ==================== 汇总页 ====================
