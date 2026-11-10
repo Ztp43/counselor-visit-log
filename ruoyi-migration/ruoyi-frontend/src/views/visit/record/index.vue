@@ -151,6 +151,14 @@
 
     <!-- 导出弹窗 -->
     <el-dialog v-model="exportVisible" title="📥 导出工作报表" width="460px">
+      <div class="scope-row">
+        <span class="quick-label">导出范围：</span>
+        <el-radio-group v-model="exportScope">
+          <el-radio-button value="record">仅工作日志</el-radio-button>
+          <el-radio-button value="item">仅跟进台账</el-radio-button>
+          <el-radio-button value="all">全部</el-radio-button>
+        </el-radio-group>
+      </div>
       <div v-if="keyword.trim()" class="kw-row">
         <el-checkbox v-model="exportWithKeyword">只导出当前搜索「{{ keyword.trim() }}」命中的记录</el-checkbox>
       </div>
@@ -438,6 +446,7 @@ const exportVisible = ref(false)
 const exportStart = ref('')
 const exportEnd = ref('')
 const exportWithKeyword = ref(true)
+const exportScope = ref('record')   // issue #35：record=仅日志 / item=仅台账 / all=全部
 const exporting = ref(false)
 
 const iso = (d) =>
@@ -487,9 +496,11 @@ async function doExport() {
     const blob = await exportReport({
       start: s,
       end: e,
-      keyword: exportWithKeyword.value ? keyword.value.trim() : ''
+      keyword: exportWithKeyword.value ? keyword.value.trim() : '',
+      scope: exportScope.value
     })
-    downloadBlob(blob, `辅导员工作日志_${s}_至_${e}.xlsx`)
+    const scopeName = { record: '工作日志', item: '跟进台账', all: '工作报表' }[exportScope.value] || '工作日志'
+    downloadBlob(blob, `辅导员${scopeName}_${s}_至_${e}.xlsx`)
     exportVisible.value = false
   } catch (e) {
     ElMessage.error('导出失败：' + (e?.message ?? '未知错误'))
@@ -547,6 +558,7 @@ onMounted(async () => {
 .trash-info { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #606266; margin-bottom: 6px; }
 .trash-actions { display: flex; gap: 8px; }
 .kw-row { background: #eef4ff; border: 1px solid #c7ddff; border-radius: 8px; padding: 8px 12px; margin-bottom: 12px; }
+.scope-row { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
 .quick-row { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
 .quick-label { font-size: 13px; color: #606266; }
 .export-dates { display: flex; gap: 8px; align-items: center; }

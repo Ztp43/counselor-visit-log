@@ -31,12 +31,14 @@ import com.ruoyi.common.enums.BusinessType;
 import com.ruoyi.common.utils.SecurityUtils;
 import com.ruoyi.system.service.ISysUserService;
 import com.ruoyi.visit.domain.VisitRecord;
+import com.ruoyi.visit.domain.VisitItem;
 import com.ruoyi.visit.annotation.AiRateLimit;
 import com.ruoyi.visit.service.IAiService;
 import com.ruoyi.visit.service.IAsrService;
 import com.ruoyi.visit.service.IReportService;
 import com.ruoyi.visit.service.IStorageService;
 import com.ruoyi.visit.service.IVisitOrgService;
+import com.ruoyi.visit.service.IVisitItemService;
 import com.ruoyi.visit.service.IVisitRecordService;
 
 /**
@@ -65,6 +67,9 @@ public class VisitRecordController extends BaseController
 
     @Autowired
     private IVisitOrgService visitOrgService;
+
+    @Autowired
+    private IVisitItemService visitItemService;
 
     @Autowired
     private ISysUserService sysUserService;
@@ -106,7 +111,8 @@ public class VisitRecordController extends BaseController
             @RequestParam(value = "start", required = false) String start,
             @RequestParam(value = "end", required = false) String end,
             @RequestParam(value = "targetUserId", required = false) Long targetUserId,
-            @RequestParam(value = "keyword", required = false) String keyword)
+            @RequestParam(value = "keyword", required = false) String keyword,
+            @RequestParam(value = "scope", defaultValue = "record") String scope)
     {
         if (start != null && end != null && !start.isBlank() && !end.isBlank() && start.compareTo(end) > 0)
         {
@@ -158,10 +164,35 @@ public class VisitRecordController extends BaseController
         if (end != null && !end.isBlank()) query.getParams().put("endTime", end);
         List<VisitRecord> records = visitRecordService.selectVisitRecordList(query);
 
-        byte[] data = reportService.buildReport(records, reporterName, rangeLabel, titleName);
+        // 取台账（复用 @DataScope，issue #35）
+        VisitItem itemQuery = new VisitItem();
+        if (targetUserId != null) itemQuery.setUserId(targetUserId);
+        if (kw != null && !kw.isEmpty()) itemQuery.setTitle(kw);
+        if (start != null && !start.isBlank()) itemQuery.getParams().put("beginTime", start);
+        if (end != null && !end.isBlank()) itemQuery.getParams().put("endTime", end);
+        List<VisitItem> items = visitItemService.selectVisitItemList(itemQuery);
 
-        String filename = (titleName != null && !titleName.equals(reporterName)
-                ? "辅导员" + titleName + "工作日志" : "辅导员工作日志") + ".xlsx";
+        // 按 scope 分派：record=仅日志 / item=仅台账 / all=双 sheet
+        byte[] data;
+        String filename;
+        if ("item".equals(scope))
+        {
+            data = reportService.buildItemReport(items, reporterName, rangeLabel, titleName);
+            filename = (titleName != null && !titleName.equals(reporterName)
+                    ? "辅导员" + titleName + "跟进台账" : "辅导员跟进台账") + ".xlsx";
+        }
+        else if ("all".equals(scope))
+        {
+            data = reportService.buildCombinedReport(records, items, reporterName, rangeLabel, titleName);
+            filename = (titleName != null && !titleName.equals(reporterName)
+                    ? "辅导员" + titleName + "工作报表" : "辅导员工作报表") + ".xlsx";
+        }
+        else
+        {
+            data = reportService.buildReport(records, reporterName, rangeLabel, titleName);
+            filename = (titleName != null && !titleName.equals(reporterName)
+                    ? "辅导员" + titleName + "工作日志" : "辅导员工作日志") + ".xlsx";
+        }
         return toResponse(data, filename);
     }
 
