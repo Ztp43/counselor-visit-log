@@ -44,6 +44,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             v.deleted_at is null
             <if test="userId != null and userId != 0"> AND v.user_id = #{userId}</if>
             <if test="deptId != null and deptId != 0"> AND v.dept_id = #{deptId}</if>
+            <if test="itemId != null and itemId != 0"> AND v.item_id = #{itemId}</if>
             <if test="eventType != null and eventType != ''"> AND v.event_type = #{eventType}</if>
             <if test="studentName != null and studentName != ''"> AND v.student_name like concat('%', #{studentName}, '%')</if>
             <if test="location != null and location != ''"> AND v.location like concat('%', #{location}, '%')</if>
