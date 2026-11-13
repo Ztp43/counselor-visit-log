@@ -16,8 +16,10 @@ import com.ruoyi.common.core.domain.AjaxResult;
 import com.ruoyi.common.core.page.TableDataInfo;
 import com.ruoyi.common.enums.BusinessType;
 import com.ruoyi.visit.domain.VisitItem;
+import com.ruoyi.visit.domain.VisitRecord;
 import com.ruoyi.visit.service.IVisitItemService;
 import com.ruoyi.visit.service.IVisitOrgService;
+import com.ruoyi.visit.service.IVisitRecordService;
 
 /**
  * 走访事项台账（issue #11 事项/跟进闭环体系）
@@ -28,11 +30,14 @@ public class VisitItemController extends BaseController
 {
     private final IVisitItemService visitItemService;
     private final IVisitOrgService visitOrgService;
+    private final IVisitRecordService visitRecordService;
 
-    public VisitItemController(IVisitItemService visitItemService, IVisitOrgService visitOrgService)
+    public VisitItemController(IVisitItemService visitItemService, IVisitOrgService visitOrgService,
+                               IVisitRecordService visitRecordService)
     {
         this.visitItemService = visitItemService;
         this.visitOrgService = visitOrgService;
+        this.visitRecordService = visitRecordService;
     }
 
     /** 事项列表（分页，四级数据权限） */
@@ -51,6 +56,16 @@ public class VisitItemController extends BaseController
     public AjaxResult getInfo(@PathVariable Long itemId)
     {
         return success(visitItemService.selectVisitItemById(itemId));
+    }
+
+    /** 事项关联的工作日志（issue #34，受 @DataScope 数据隔离） */
+    @PreAuthorize("@ss.hasPermi('visit:item:query')")
+    @GetMapping("/{itemId}/records")
+    public AjaxResult records(@PathVariable Long itemId)
+    {
+        VisitRecord query = new VisitRecord();
+        query.setItemId(itemId);
+        return success(visitRecordService.selectVisitRecordList(query));
     }
 
     /** 新增事项 */

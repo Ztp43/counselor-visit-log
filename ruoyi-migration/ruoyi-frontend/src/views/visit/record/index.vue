@@ -61,7 +61,7 @@
         <el-button v-if="!filterDesc" size="small" type="primary" @click="$router.push('/today')">去记录</el-button>
       </div>
       <div v-else>
-        <div v-for="r in records" :key="r.recordId" class="record-item">
+        <div v-for="r in records" :key="r.recordId" class="record-item" :class="{ highlight: highlightRecordId && String(r.recordId) === highlightRecordId }">
           <div class="top">
             <el-tag size="small" :type="tagType(r.eventType)">{{ eventTypeCn(r.eventType) }}</el-tag>
             <span class="top-right">
@@ -188,12 +188,14 @@
 </template>
 
 <script setup name="Record">
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, nextTick } from 'vue'
+import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Delete, Download, DataAnalysis } from '@element-plus/icons-vue'
 import useUserStore from '@/store/modules/user'
 import { listRecords, listTrash, updateRecord, deleteRecord, restoreRecord, purgeRecord, exportReport, exportWeekly, orgTree } from '@/api/visit/record'
 
+const route = useRoute()
 const userStore = useUserStore()
 const roles = computed(() => userStore.roles || [])
 const isAdmin = computed(() => roles.value.includes('admin'))
@@ -227,6 +229,7 @@ const keyword = ref('')
 const startDate = ref('')
 const endDate = ref('')
 const filterUserId = ref(undefined)
+const highlightRecordId = ref(undefined)   // issue #34：从事项详情跳转过来时定位高亮的记录
 
 // 三级目录（领导/管理员下钻）
 const orgNodes = ref([])
@@ -527,9 +530,17 @@ function openLightbox(src) {
 }
 
 onMounted(async () => {
+  // issue #34：从事项详情跳转过来时，读取 recordId 用于定位高亮
+  const rid = route.query.recordId
+  if (rid) highlightRecordId.value = String(rid)
   load()
   if (!isCounselor.value) {
     try { orgNodes.value = await orgTree() } catch { /* 目录失败不影响列表 */ }
+  }
+  if (rid) {
+    await nextTick()
+    const el = document.querySelector('.record-item.highlight')
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
   }
 })
 </script>
@@ -539,6 +550,7 @@ onMounted(async () => {
 .head-btns { display: flex; gap: 8px; flex-wrap: wrap; }
 .filters { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
 .record-item { border: 1px solid #ebeef5; border-radius: 10px; padding: 12px; margin-bottom: 10px; }
+.record-item.highlight { border-color: #409eff; box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.25); background: #f0f7ff; }
 .record-item .top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
 .top-right { display: flex; align-items: center; gap: 8px; }
 .time { font-size: 12px; color: #909399; }

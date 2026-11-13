@@ -47,6 +47,14 @@ export function listItemLogs(itemId) {
   }).then(res => res.data || [])
 }
 
+// 事项关联的工作日志（issue #34）
+export function listItemRecords(itemId) {
+  return request({
+    url: '/visit/item/' + itemId + '/records',
+    method: 'get'
+  }).then(res => res.data || [])
+}
+
 export function addFollowLog(itemId, content) {
   return request({
     url: '/visit/item/' + itemId + '/follow',

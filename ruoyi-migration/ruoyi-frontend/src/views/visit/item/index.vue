@@ -129,6 +129,22 @@
       </div>
       <div v-if="detailItem" class="detail-desc">{{ detailItem.description || '（无详情描述）' }}</div>
 
+      <!-- issue #34：关联工作日志板块 -->
+      <div class="related-title">📎 关联日志</div>
+      <div v-if="!relatedRecords.length" class="empty">暂无关联的工作日志</div>
+      <div v-else class="related-list">
+        <div v-for="r in relatedRecords" :key="r.recordId" class="related-item">
+          <div class="related-top">
+            <el-tag size="small" type="info">{{ categoryCn(r.eventType) }}</el-tag>
+            <span class="related-time">{{ fmtTime(r.createTime || r.recordDate) }}</span>
+          </div>
+          <div class="related-detail">{{ r.detail || '（无详情）' }}</div>
+          <div class="related-actions">
+            <el-button link type="primary" size="small" @click="goToRecord(r.recordId)">查看日志</el-button>
+          </div>
+        </div>
+      </div>
+
       <div class="timeline-title">跟进时间线</div>
       <div v-if="!logs.length" class="empty">暂无跟进记录</div>
       <el-timeline v-else>
@@ -157,11 +173,13 @@
 
 <script setup name="Item">
 import { ref, reactive, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
 import useUserStore from '@/store/modules/user'
-import { listItems, addItem, updateItem, deleteItem, listItemLogs, addFollowLog, listAssignees, itemStats } from '@/api/visit/item'
+import { listItems, addItem, updateItem, deleteItem, listItemLogs, listItemRecords, addFollowLog, listAssignees, itemStats } from '@/api/visit/item'
 
+const router = useRouter()
 const userStore = useUserStore()
 const roles = computed(() => userStore.roles || [])
 const isAdmin = computed(() => roles.value.includes('admin'))
@@ -330,6 +348,7 @@ onMounted(() => { load(); loadAssignees(); loadStats() })
 const detailVisible = ref(false)
 const detailItem = ref(null)
 const logs = ref([])
+const relatedRecords = ref([])   // issue #34：关联的工作日志
 const followContent = ref('')
 
 function actionLabel(a) {
@@ -349,12 +368,25 @@ async function openDetail(row) {
   detailItem.value = row
   detailVisible.value = true
   logs.value = []
+  relatedRecords.value = []
   followContent.value = ''
   try {
     logs.value = await listItemLogs(row.itemId)
   } catch {
     logs.value = []
   }
+  // issue #34：加载关联工作日志
+  try {
+    relatedRecords.value = await listItemRecords(row.itemId)
+  } catch {
+    relatedRecords.value = []
+  }
+}
+
+// 跳转到工作日志页并定位该条记录（issue #34）
+function goToRecord(recordId) {
+  detailVisible.value = false
+  router.push({ path: '/record', query: { recordId: String(recordId) } })
 }
 
 async function addFollow() {
@@ -392,6 +424,13 @@ async function addFollow() {
 .detail-meta { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
 .meta-item { font-size: 13px; color: #606266; }
 .detail-desc { font-size: 14px; color: #303133; background: #f7f8fa; padding: 10px 12px; border-radius: 6px; margin-bottom: 16px; line-height: 1.6; }
+.related-title { font-size: 14px; font-weight: 600; color: #303133; margin-bottom: 10px; }
+.related-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; max-height: 220px; overflow-y: auto; }
+.related-item { border: 1px solid #eef0f2; border-radius: 8px; padding: 10px 12px; }
+.related-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.related-time { font-size: 12px; color: #909399; }
+.related-detail { font-size: 13px; color: #303133; line-height: 1.5; }
+.related-actions { text-align: right; margin-top: 4px; }
 .timeline-title { font-size: 14px; font-weight: 600; color: #303133; margin-bottom: 12px; }
 .log-content { font-size: 13px; color: #303133; }
 .log-by { font-size: 12px; color: #909399; margin-top: 2px; }
