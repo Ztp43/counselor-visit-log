@@ -73,6 +73,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         from visit_item i
         <where>
             i.deleted_at is null
+            <if test="userId != null and userId != 0"> AND i.user_id = #{userId}</if>
             ${params.dataScope}
         </where>
     </select>

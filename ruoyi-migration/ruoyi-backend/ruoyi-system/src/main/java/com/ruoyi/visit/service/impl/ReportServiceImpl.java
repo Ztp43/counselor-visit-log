@@ -46,7 +46,8 @@ public class ReportServiceImpl implements IReportService
     private static final DateTimeFormatter MONTH_FMT = DateTimeFormatter.ofPattern("yyyy-MM");
 
     @Override
-    public byte[] buildReport(List<VisitRecord> records, String reporterName, String rangeLabel, String titleName)
+    public byte[] buildReport(List<VisitRecord> records, String reporterName, String rangeLabel, String titleName,
+                              Map<String, Object> itemStats)
     {
         try (XSSFWorkbook wb = new XSSFWorkbook())
         {
@@ -57,7 +58,7 @@ public class ReportServiceImpl implements IReportService
             String detailTitle = titleName != null ? "辅导员" + titleName + "工作日志明细" : "辅导员工作日志明细";
 
             Sheet summary = wb.createSheet("工作汇总");
-            buildSummarySheet(summary, records, counts, total, mainTitle, info);
+            buildSummarySheet(summary, records, counts, total, mainTitle, info, itemStats);
 
             Sheet trend = wb.createSheet("逐月趋势");
             buildTrendSheet(trend, records, counts, total, info);
@@ -77,7 +78,7 @@ public class ReportServiceImpl implements IReportService
 
     @Override
     public byte[] buildWeeklyReport(List<VisitRecord> records, String reporterName, String weekLabel,
-                                    List<LocalDate> days, String titleName)
+                                    List<LocalDate> days, String titleName, Map<String, Object> itemStats)
     {
         try (XSSFWorkbook wb = new XSSFWorkbook())
         {
@@ -87,7 +88,7 @@ public class ReportServiceImpl implements IReportService
             String mainTitle = titleName != null ? "辅导员" + titleName + "周报" : "辅导员工作周报";
 
             Sheet summary = wb.createSheet("周报汇总");
-            buildWeeklySummary(summary, records, counts, total, days, mainTitle, info);
+            buildWeeklySummary(summary, records, counts, total, days, mainTitle, info, itemStats);
 
             Sheet detail = wb.createSheet("事务明细");
             buildDetailSheet(detail, records, "本周工作事务明细", info, 6);
@@ -124,7 +125,8 @@ public class ReportServiceImpl implements IReportService
 
     @Override
     public byte[] buildCombinedReport(List<VisitRecord> records, List<VisitItem> items,
-                                      String reporterName, String rangeLabel, String titleName)
+                                      String reporterName, String rangeLabel, String titleName,
+                                      Map<String, Object> itemStats)
     {
         try (XSSFWorkbook wb = new XSSFWorkbook())
         {
@@ -136,7 +138,7 @@ public class ReportServiceImpl implements IReportService
 
             // 工作表（3 个 sheet，与原 buildReport 一致）
             Sheet summary = wb.createSheet("工作汇总");
-            buildSummarySheet(summary, records, counts, total, mainTitle, info);
+            buildSummarySheet(summary, records, counts, total, mainTitle, info, itemStats);
             Sheet trend = wb.createSheet("逐月趋势");
             buildTrendSheet(trend, records, counts, total, info);
             Sheet detail = wb.createSheet("工作明细");
@@ -218,7 +220,7 @@ public class ReportServiceImpl implements IReportService
     // ==================== 汇总页 ====================
 
     private void buildSummarySheet(Sheet ws, List<VisitRecord> records, Map<String, Integer> counts,
-                                   int total, String title, String info)
+                                   int total, String title, String info, Map<String, Object> itemStats)
     {
         ws.setColumnWidth(0, 10 * 256);
         for (int i = 1; i < 10; i++) ws.setColumnWidth(i, 10 * 256);
@@ -235,8 +237,41 @@ public class ReportServiceImpl implements IReportService
         r = typeTable(ws, counts, total, r + 1);
 
         r += 2;
+        // issue #36：跟进事项闭环统计
+        r = itemStatsBlock(ws, itemStats, r);
+
+        r += 2;
         ws.createRow(r).createCell(0).setCellValue("三、辅导员详细工作事务");
         workItems(ws, records, r + 1);
+    }
+
+    /** 跟进事项闭环统计（issue #36）：待处理/跟进中/已结案/超期 */
+    private int itemStatsBlock(Sheet ws, Map<String, Object> itemStats, int row)
+    {
+        ws.createRow(row).createCell(0).setCellValue("跟进事项闭环（待处理/跟进中/已结案/超期）");
+
+        String[] labels = {"待处理", "跟进中", "已结案", "超期"};
+        String[] keys = {"pending", "following", "closed", "overdue"};
+        int[][] spans = {{0, 2}, {2, 4}, {4, 6}, {6, 10}};
+
+        for (int i = 0; i < 4; i++)
+        {
+            Row hr = ws.createRow(row + 1);
+            hr.createCell(spans[i][0]).setCellValue(labels[i]);
+            mergeRange(ws, row + 1, spans[i][0], spans[i][1] - 1);
+            Row vr = ws.createRow(row + 2);
+            long v = itemStats == null ? 0 : num(itemStats.get(keys[i]));
+            vr.createCell(spans[i][0]).setCellValue(v);
+            mergeRange(ws, row + 2, spans[i][0], spans[i][1] - 1);
+        }
+        return row + 2;
+    }
+
+    private long num(Object o)
+    {
+        if (o == null) return 0;
+        if (o instanceof Number n) return n.longValue();
+        try { return Long.parseLong(o.toString()); } catch (Exception e) { return 0; }
     }
 
     private int metricCards(Sheet ws, List<VisitRecord> records, int row)
@@ -420,7 +455,8 @@ public class ReportServiceImpl implements IReportService
     // ==================== 周报 ====================
 
     private void buildWeeklySummary(Sheet ws, List<VisitRecord> records, Map<String, Integer> counts,
-                                    int total, List<LocalDate> days, String title, String info)
+                                    int total, List<LocalDate> days, String title, String info,
+                                    Map<String, Object> itemStats)
     {
         ws.setColumnWidth(0, 12 * 256);
         for (int i = 1; i < 11; i++) ws.setColumnWidth(i, 8 * 256);
@@ -462,6 +498,10 @@ public class ReportServiceImpl implements IReportService
         totalRow.createCell(0).setCellValue("合计");
         for (int i = 0; i < typeOrder.size(); i++) totalRow.createCell(1 + i).setCellValue(counts.getOrDefault(typeOrder.get(i), 0));
         totalRow.createCell(10).setCellValue(total);
+
+        r += 2;
+        // issue #36：跟进事项闭环统计
+        r = itemStatsBlock(ws, itemStats, r);
 
         r += 2;
         ws.createRow(r).createCell(0).setCellValue("三、本周工作事务明细");

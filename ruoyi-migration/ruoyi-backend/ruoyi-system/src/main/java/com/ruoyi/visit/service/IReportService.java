@@ -2,6 +2,7 @@ package com.ruoyi.visit.service;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import com.ruoyi.visit.domain.VisitItem;
 import com.ruoyi.visit.domain.VisitRecord;
 
@@ -17,14 +18,18 @@ public interface IReportService
      * @param reporterName 报告人姓名
      * @param rangeLabel 统计范围描述（写进副标题）
      * @param titleName 指定辅导员姓名（null=通用标题）
+     * @param itemStats 跟进事项统计（total/pending/following/closed/overdue，issue #36）
      */
-    byte[] buildReport(List<VisitRecord> records, String reporterName, String rangeLabel, String titleName);
+    byte[] buildReport(List<VisitRecord> records, String reporterName, String rangeLabel, String titleName,
+                       Map<String, Object> itemStats);
 
     /**
      * 周报（本周一至今天），返回 xlsx 字节。
+     *
+     * @param itemStats 跟进事项统计（issue #36）
      */
     byte[] buildWeeklyReport(List<VisitRecord> records, String reporterName, String weekLabel,
-                             List<LocalDate> days, String titleName);
+                             List<LocalDate> days, String titleName, Map<String, Object> itemStats);
 
     /**
      * 跟进台账报表（issue #35），返回 xlsx 字节。
@@ -41,6 +46,7 @@ public interface IReportService
      * 组合报表（issue #35）：工作表 + 台账两个 sheet 合到一个 xlsx。
      */
     byte[] buildCombinedReport(List<VisitRecord> records, List<VisitItem> items,
-                               String reporterName, String rangeLabel, String titleName);
+                               String reporterName, String rangeLabel, String titleName,
+                               Map<String, Object> itemStats);
 }
 
