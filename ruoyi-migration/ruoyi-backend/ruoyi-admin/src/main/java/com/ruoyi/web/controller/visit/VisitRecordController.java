@@ -172,6 +172,11 @@ public class VisitRecordController extends BaseController
         if (end != null && !end.isBlank()) itemQuery.getParams().put("endTime", end);
         List<VisitItem> items = visitItemService.selectVisitItemList(itemQuery);
 
+        // issue #36：跟进事项闭环统计（待处理/跟进中/已结案/超期）
+        VisitItem statsQuery = new VisitItem();
+        if (targetUserId != null) statsQuery.setUserId(targetUserId);
+        java.util.Map<String, Object> itemStats = visitItemService.itemStats(statsQuery);
+
         // 按 scope 分派：record=仅日志 / item=仅台账 / all=双 sheet
         byte[] data;
         String filename;
@@ -183,13 +188,13 @@ public class VisitRecordController extends BaseController
         }
         else if ("all".equals(scope))
         {
-            data = reportService.buildCombinedReport(records, items, reporterName, rangeLabel, titleName);
+            data = reportService.buildCombinedReport(records, items, reporterName, rangeLabel, titleName, itemStats);
             filename = (titleName != null && !titleName.equals(reporterName)
                     ? "辅导员" + titleName + "工作报表" : "辅导员工作报表") + ".xlsx";
         }
         else
         {
-            data = reportService.buildReport(records, reporterName, rangeLabel, titleName);
+            data = reportService.buildReport(records, reporterName, rangeLabel, titleName, itemStats);
             filename = (titleName != null && !titleName.equals(reporterName)
                     ? "辅导员" + titleName + "工作日志" : "辅导员工作日志") + ".xlsx";
         }
@@ -230,7 +235,12 @@ public class VisitRecordController extends BaseController
         query.getParams().put("endTime", today.toString());
         List<VisitRecord> records = visitRecordService.selectVisitRecordList(query);
 
-        byte[] data = reportService.buildWeeklyReport(records, reporterName, weekLabel, days, titleName);
+        // issue #36：跟进事项闭环统计
+        VisitItem statsQuery = new VisitItem();
+        if (targetUserId != null) statsQuery.setUserId(targetUserId);
+        java.util.Map<String, Object> itemStats = visitItemService.itemStats(statsQuery);
+
+        byte[] data = reportService.buildWeeklyReport(records, reporterName, weekLabel, days, titleName, itemStats);
 
         String filename = (titleName != null && !titleName.equals(reporterName)
                 ? "辅导员" + titleName + "周报" : "周报") + ".xlsx";
