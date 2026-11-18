@@ -3,9 +3,11 @@ package com.ruoyi.web.controller.visit;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.YearMonth;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -85,12 +87,33 @@ public class SummaryController extends BaseController
         }
         int total = records.size();
 
+        // 涉及学生数（issue #39）：去重统计该周期日志涉及的学生姓名（多人用「、」分隔）
+        Set<String> students = new HashSet<>();
+        for (VisitRecord r : records)
+        {
+            String sn = r.getStudentName();
+            if (sn == null || sn.isBlank())
+            {
+                continue;
+            }
+            for (String name : sn.split("[、,，\\s]+"))
+            {
+                String n = name.trim();
+                if (!n.isEmpty())
+                {
+                    students.add(n);
+                }
+            }
+        }
+        int studentCount = students.size();
+
         // 事项闭环指标（同周期，复用 itemStats 的逻辑——这里按当前数据权限取全量事项统计）
         Map<String, Object> itemMetrics = visitItemService.itemStats(new VisitItem());
 
         // 组装指标
         Map<String, Object> metrics = new LinkedHashMap<>();
         metrics.put("total", total);
+        metrics.put("studentCount", studentCount);
         for (String et : EVENT_TYPES)
         {
             metrics.put(et, typeCount.getOrDefault(et, 0));
@@ -161,6 +184,7 @@ public class SummaryController extends BaseController
         sb.append("\"周期\":\"").append(periodCn(period)).append("\",");
         sb.append("\"时间范围\":\"").append(rangeLabel).append("\",");
         sb.append("\"记录总数\":").append(metrics.get("total")).append(",");
+        sb.append("\"涉及学生数\":").append(metrics.get("studentCount")).append(",");
         sb.append("\"查寝点名\":").append(metrics.get("dorm_check")).append(",");
         sb.append("\"安全卫生\":").append(metrics.get("hygiene")).append(",");
         sb.append("\"谈心谈话\":").append(metrics.get("talk")).append(",");
