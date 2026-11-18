@@ -482,11 +482,21 @@ public class VisitRecordController extends BaseController
     }
 
     /** 敏感记录访问审计日志（issue #13，仅管理员可查） */
-    @PreAuthorize("@ss.hasPermi('visit:record:list')")
+    @PreAuthorize("@ss.hasRole('admin')")
     @GetMapping("/access-log/{recordId}")
     public AjaxResult accessLog(@PathVariable Long recordId)
     {
         return success(visitRecordService.selectAccessLogs(recordId));
+    }
+
+    /** 审计日志分页列表（issue #37，仅管理员） */
+    @PreAuthorize("@ss.hasRole('admin')")
+    @GetMapping("/access-log/list")
+    public TableDataInfo accessLogList(com.ruoyi.visit.domain.VisitAccessLog query)
+    {
+        startPage();
+        List<com.ruoyi.visit.domain.VisitAccessLog> list = visitRecordService.selectAccessLogPage(query);
+        return getDataTable(list);
     }
 
     /**

@@ -11,4 +11,7 @@ public interface VisitAccessLogMapper
     int insertAccessLog(VisitAccessLog log);
 
     List<VisitAccessLog> selectAccessLogs(Long recordId);
+
+    /** 审计日志列表（分页，issue #37） */
+    List<VisitAccessLog> selectAccessLogPage(VisitAccessLog query);
 }

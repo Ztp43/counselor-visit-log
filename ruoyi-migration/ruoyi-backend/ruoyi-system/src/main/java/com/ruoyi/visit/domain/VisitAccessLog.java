@@ -15,6 +15,7 @@ public class VisitAccessLog extends BaseEntity
     private String recordType;
     private Long viewerId;
     private String viewerName;
+    private String ip;
     private Date accessTime;
 
     public Long getLogId() { return logId; }
@@ -27,6 +28,8 @@ public class VisitAccessLog extends BaseEntity
     public void setViewerId(Long viewerId) { this.viewerId = viewerId; }
     public String getViewerName() { return viewerName; }
     public void setViewerName(String viewerName) { this.viewerName = viewerName; }
+    public String getIp() { return ip; }
+    public void setIp(String ip) { this.ip = ip; }
     public Date getAccessTime() { return accessTime; }
     public void setAccessTime(Date accessTime) { this.accessTime = accessTime; }
 }

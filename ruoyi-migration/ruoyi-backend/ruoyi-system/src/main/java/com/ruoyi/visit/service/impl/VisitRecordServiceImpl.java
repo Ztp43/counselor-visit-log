@@ -130,6 +130,7 @@ public class VisitRecordServiceImpl implements IVisitRecordService
             log.setRecordType(r.getEventType());
             log.setViewerId(SecurityUtils.getUserId());
             log.setViewerName(SecurityUtils.getUsername());
+            log.setIp(com.ruoyi.common.utils.ip.IpUtils.getIpAddr());
             visitAccessLogMapper.insertAccessLog(log);
         }
         catch (Exception ignored)
@@ -142,6 +143,12 @@ public class VisitRecordServiceImpl implements IVisitRecordService
     public List<VisitAccessLog> selectAccessLogs(Long recordId)
     {
         return visitAccessLogMapper.selectAccessLogs(recordId);
+    }
+
+    @Override
+    public List<VisitAccessLog> selectAccessLogPage(VisitAccessLog query)
+    {
+        return visitAccessLogMapper.selectAccessLogPage(query);
     }
 
     @Override
