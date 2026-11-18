@@ -52,6 +52,8 @@
             <div class="section-title">📊 量化指标</div>
             <div class="metric-total">
               工作日志总数 <b>{{ metrics.total ?? 0 }}</b> 条
+              <span class="total-sep">·</span>
+              涉及学生 <b>{{ metrics.studentCount ?? 0 }}</b> 人
             </div>
             <div class="metric-grid">
               <div v-for="(cn, k) in EVENT_TYPES" :key="k" class="metric-item" :class="'t-' + k">
@@ -189,6 +191,7 @@ onMounted(async () => {
 .metrics-section { }
 .metric-total { font-size: 14px; color: #606266; margin-bottom: 10px; }
 .metric-total b { font-size: 18px; color: #303133; }
+.total-sep { margin: 0 10px; color: #c0c4cc; }
 .metric-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
 .metric-item { border-radius: 8px; padding: 12px; text-align: center; }
 .metric-item .m-num { font-size: 22px; font-weight: 700; }
