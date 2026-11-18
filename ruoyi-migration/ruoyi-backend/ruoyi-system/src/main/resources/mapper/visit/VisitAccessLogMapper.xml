@@ -10,18 +10,30 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="recordType" column="record_type" />
         <result property="viewerId"   column="viewer_id"   />
         <result property="viewerName" column="viewer_name" />
+        <result property="ip"         column="ip"          />
         <result property="accessTime" column="access_time" />
     </resultMap>
 
     <insert id="insertAccessLog" parameterType="com.ruoyi.visit.domain.VisitAccessLog" useGeneratedKeys="true" keyProperty="logId">
-        insert into visit_access_log(record_id, record_type, viewer_id, viewer_name, access_time)
-        values(#{recordId}, #{recordType}, #{viewerId}, #{viewerName}, sysdate())
+        insert into visit_access_log(record_id, record_type, viewer_id, viewer_name, ip, access_time)
+        values(#{recordId}, #{recordType}, #{viewerId}, #{viewerName}, #{ip}, sysdate())
     </insert>
 
     <select id="selectAccessLogs" parameterType="Long" resultMap="VisitAccessLogResult">
-        select log_id, record_id, record_type, viewer_id, viewer_name, access_time
+        select log_id, record_id, record_type, viewer_id, viewer_name, ip, access_time
         from visit_access_log
         where record_id = #{recordId}
+        order by access_time desc
+    </select>
+
+    <!-- issue #37：审计日志分页列表（支持按记录ID/访问人筛选） -->
+    <select id="selectAccessLogPage" parameterType="com.ruoyi.visit.domain.VisitAccessLog" resultMap="VisitAccessLogResult">
+        select log_id, record_id, record_type, viewer_id, viewer_name, ip, access_time
+        from visit_access_log
+        <where>
+            <if test="recordId != null"> AND record_id = #{recordId}</if>
+            <if test="viewerName != null and viewerName != ''"> AND viewer_name like concat('%', #{viewerName}, '%')</if>
+        </where>
         order by access_time desc
     </select>
 </mapper>

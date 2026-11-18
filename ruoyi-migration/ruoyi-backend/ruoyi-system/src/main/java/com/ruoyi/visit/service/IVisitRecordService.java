@@ -43,4 +43,7 @@ public interface IVisitRecordService
 
     /** 敏感记录访问审计（issue #13） */
     List<com.ruoyi.visit.domain.VisitAccessLog> selectAccessLogs(Long recordId);
+
+    /** 审计日志分页列表（issue #37，仅管理员） */
+    List<com.ruoyi.visit.domain.VisitAccessLog> selectAccessLogPage(com.ruoyi.visit.domain.VisitAccessLog query);
 }
