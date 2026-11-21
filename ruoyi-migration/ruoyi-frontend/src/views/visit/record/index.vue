@@ -585,3 +585,19 @@ onMounted(async () => {
 .dark .trash-item { border-bottom-color: #414243; }
 .dark .photos img { border: 1px solid #414243; }
 </style>
+
+<style scoped>
+/* ---------- 移动端适配：筛选栏/按钮换行、固定宽度组件收缩（issue 移动端补齐） ---------- */
+@media (max-width: 991px) {
+  .app-container { padding: 0; }
+  .head-btns { flex-wrap: wrap; }
+  .filters { flex-wrap: wrap; }
+  .filters .el-input,
+  .filters .el-date-editor,
+  .filters .el-cascader {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+  .record-item { padding: 10px; }
+}
+</style>

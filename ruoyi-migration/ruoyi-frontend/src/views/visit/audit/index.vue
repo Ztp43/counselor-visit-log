@@ -133,3 +133,15 @@ onMounted(() => load())
 .empty-title { font-size: 15px; color: #606266; }
 .empty-desc { font-size: 13px; margin-top: 6px; }
 </style>
+
+<style scoped>
+/* ---------- 移动端适配：筛选输入框收缩（issue 移动端补齐） ---------- */
+@media (max-width: 991px) {
+  .app-container { padding: 0; }
+  .filters { flex-wrap: wrap; }
+  .filters .el-input {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+}
+</style>

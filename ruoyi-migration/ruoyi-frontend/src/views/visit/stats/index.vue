@@ -235,3 +235,14 @@ onMounted(async () => {
 .dark .e-closed    { background: rgba(42,168,106,0.16); } .dark .e-closed    .enum, .dark .e-closed    .elabel { color: #6fd3a0; }
 .dark .e-rate      { background: rgba(51,117,209,0.16); } .dark .e-rate      .enum, .dark .e-rate      .elabel { color: #82b1ec; }
 </style>
+
+<style scoped>
+/* ---------- 移动端适配：窄屏收窄边距、grid 减列（issue 移动端补齐） ---------- */
+@media (max-width: 991px) {
+  .app-container { padding: 0; }
+  .stat-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .effect-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .stat-item { padding: 12px 8px; }
+  .num { font-size: 22px; }
+}
+</style>

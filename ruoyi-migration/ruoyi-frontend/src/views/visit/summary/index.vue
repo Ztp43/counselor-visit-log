@@ -225,6 +225,15 @@ onMounted(async () => {
   .head-btns, .filters { display: none; }
   .report-area { border: none; }
 }
+
+/* 移动端适配：指标 grid 减列、cascader 收缩（issue 移动端补齐） */
+@media (max-width: 991px) {
+  .app-container { padding: 0; }
+  .filters { flex-direction: column; align-items: stretch; }
+  .filters .el-cascader { width: 100% !important; }
+  .metric-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .metric-item { padding: 10px 8px; }
+}
 </style>
 
 <style>
