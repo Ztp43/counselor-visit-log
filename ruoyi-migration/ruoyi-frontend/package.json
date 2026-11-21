@@ -9,7 +9,9 @@
     "dev": "vite",
     "build:prod": "vite build",
     "build:stage": "vite build --mode staging",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "clean": "node clean.mjs",
+    "build:clean": "node clean.mjs && vite build"
   },
   "repository": {
     "type": "git",

@@ -30,6 +30,8 @@ export default defineConfig(({ mode, command }) => {
       // https://vite.dev/config/build-options.html
       sourcemap: command === 'build' ? false : 'inline',
       outDir: 'dist',
+      // issue #6：构建前强制清空 dist，避免残留历史 chunk 导致线上加载旧代码
+      emptyOutDir: true,
       assetsDir: 'assets',
       chunkSizeWarningLimit: 2000,
       rollupOptions: {
