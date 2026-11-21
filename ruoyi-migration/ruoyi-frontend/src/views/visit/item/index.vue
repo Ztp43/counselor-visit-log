@@ -436,3 +436,18 @@ async function addFollow() {
 .log-by { font-size: 12px; color: #909399; margin-top: 2px; }
 .follow-row { display: flex; gap: 8px; margin-top: 16px; }
 </style>
+
+<style scoped>
+/* ---------- 移动端适配：筛选栏/按钮换行、固定宽度组件收缩（issue 移动端补齐） ---------- */
+@media (max-width: 991px) {
+  .app-container { padding: 0; }
+  .head-btns { flex-wrap: wrap; }
+  .filters { flex-wrap: wrap; }
+  .filters .el-input,
+  .filters .el-select {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+  .follow-row { flex-direction: column; }
+}
+</style>
